@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Badminton Meet</title>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
+    <script defer src="script.js"></script>
+</head>
+<body>
+    <h1>Badminton Meet</h1>
+    <input type="text" id="nameInput" placeholder="Enter your name">
+    <input type="date" id="dateInput">
+    <input type="time" id="timeInput">
+    <button onclick="proposeMeetup()">Propose Meetup</button>
+
+    <h2>Proposed Meetups</h2>
+    <ul id="proposalsList"></ul>
+</body>
+</html>
