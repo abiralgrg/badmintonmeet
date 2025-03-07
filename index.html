@@ -4,29 +4,41 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Badminton Meet</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css">
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <h1>Badminton Meet</h1>
+    <div class="container">
+        <!-- Sidebar for Proposals -->
+        <div class="sidebar">
+            <h2>Proposals</h2>
+            <div id="login-section">
+                <input type="text" id="user-name" placeholder="Enter your name">
+                <button onclick="login()">Login</button>
+            </div>
+            <div id="propose-section" style="display: none;">
+                <h3>Propose a Meetup</h3>
+                <input type="date" id="propose-date">
+                <input type="time" id="propose-time">
+                <button onclick="proposeMeetup()">Propose</button>
+            </div>
+            <div id="proposals-list"></div>
+        </div>
 
-    <label for="nameInput">Your Name:</label>
-    <input type="text" id="nameInput" placeholder="Enter your name">
-    
-    <label for="dateInput">Date:</label>
-    <input type="date" id="dateInput">
-    
-    <label for="timeInput">Time:</label>
-    <input type="time" id="timeInput">
-    
-    <button onclick="proposeMeetup()">Propose Meetup</button>
+        <!-- Main Calendar -->
+        <div class="main">
+            <h1>Badminton Meet</h1>
+            <div id="calendar"></div>
+        </div>
+    </div>
 
-    <h2>Proposed Meetups</h2>
-    <ul id="proposalsList"></ul>
-
-    <!-- Load Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-
-    <!-- Link to JavaScript file -->
-    <script defer src="script.js"></script>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js"></script>
+    <!-- FullCalendar -->
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+    <!-- Custom Script -->
+    <script src="script.js"></script>
 </body>
 </html>
