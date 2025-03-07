@@ -1,3 +1,7 @@
+// Ensure Firebase is available
+console.log("Firebase loading...");
+
+// Your Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyBETUme1XqagHowwggApN53A2aINQcAiM8",
   authDomain: "badminton-meet.firebaseapp.com",
@@ -12,8 +16,12 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
+console.log("Firebase initialized!");
+
 // Function to propose a meetup
 function proposeMeetup() {
+    console.log("Propose button clicked");
+    
     const name = document.getElementById('nameInput').value;
     const date = document.getElementById('dateInput').value;
     const time = document.getElementById('timeInput').value;
@@ -23,6 +31,8 @@ function proposeMeetup() {
         return;
     }
 
+    console.log("Sending data to Firestore...");
+
     db.collection("proposals").add({
         name,
         date,
@@ -31,12 +41,16 @@ function proposeMeetup() {
         confirmed: false
     }).then(() => {
         alert("Meetup proposed!");
+        console.log("Meetup successfully added!");
         loadProposals();
+    }).catch(error => {
+        console.error("Error adding document: ", error);
     });
 }
 
 // Function to load proposals
 function loadProposals() {
+    console.log("Loading proposals...");
     const proposalsList = document.getElementById('proposalsList');
     proposalsList.innerHTML = '';
 
@@ -55,6 +69,8 @@ function loadProposals() {
 
 // Function to accept a proposal
 function acceptProposal(id) {
+    console.log("Accepting proposal:", id);
+    
     db.collection("proposals").doc(id).get().then(doc => {
         if (doc.exists) {
             let data = doc.data();
@@ -82,4 +98,4 @@ function acceptProposal(id) {
 }
 
 // Load proposals on startup
-loadProposals();
+window.onload = loadProposals;
