@@ -16,25 +16,26 @@ document.addEventListener('DOMContentLoaded', function() {
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
 
-  // Calendar Setup with enhanced configuration
+  // Calendar Setup
   const calendarEl = document.getElementById('calendar');
   const calendar = new FullCalendar.Calendar(calendarEl, {
     initialView: 'dayGridMonth',
     events: loadAllEvents,
+    // IMPORTANT: Use custom rendering to show only symbols
     eventContent: function(arg) {
-      // Create custom content with just a symbol
-      const eventSymbol = document.createElement('div');
-      eventSymbol.classList.add('event-symbol');
+      const symbolEl = document.createElement('div');
+      symbolEl.className = 'event-symbol';
       
       if (arg.event.extendedProps.status === 'confirmed') {
-        eventSymbol.innerHTML = '✓'; // Tick mark for confirmed
-        eventSymbol.classList.add('confirmed-symbol');
+        symbolEl.innerHTML = '✓';
+        symbolEl.className += ' confirmed-symbol';
       } else {
-        eventSymbol.innerHTML = '○'; // Circle for proposed
-        eventSymbol.classList.add('proposed-symbol');
+        symbolEl.innerHTML = '○';
+        symbolEl.className += ' proposed-symbol';
       }
       
-      return { domNodes: [eventSymbol] };
+      // Return ONLY the symbol element with no title text
+      return { domNodes: [symbolEl] };
     },
     eventDidMount: function(info) {
       // Add tooltip with participants and info
@@ -75,7 +76,6 @@ document.addEventListener('DOMContentLoaded', function() {
       loadProposals();
       document.getElementById('propose-date').value = '';
       document.getElementById('propose-time').value = '';
-      // Refresh calendar to show the new proposal
       calendar.refetchEvents();
     }).catch(error => console.error("Propose error:", error));
   };
@@ -91,7 +91,7 @@ document.addEventListener('DOMContentLoaded', function() {
         snapshot.forEach(doc => {
           const proposal = doc.data();
           
-          // Ensure acceptedBy is an array - this is the key fix
+          // Ensure acceptedBy is an array
           const acceptedBy = Array.isArray(proposal.acceptedBy) ? proposal.acceptedBy : [];
           const acceptedCount = acceptedBy.length;
           
@@ -106,8 +106,6 @@ document.addEventListener('DOMContentLoaded', function() {
           `;
           proposalsList.appendChild(div);
         });
-        
-        // Refresh calendar when proposals change
         calendar.refetchEvents();
       }, error => console.error("Error loading proposals:", error));
   }
@@ -134,12 +132,11 @@ document.addEventListener('DOMContentLoaded', function() {
         });
       }
       
-      // Refresh calendar when proposal is updated
       calendar.refetchEvents();
     }).catch(error => console.error("Toggle error:", error));
   };
 
-  // Load All Events (both proposed and confirmed)
+  // Load All Events - SUPER CLEAN, NO TEXT
   function loadAllEvents(fetchInfo, successCallback) {
     db.collection('proposals')
       .get()
@@ -152,7 +149,8 @@ document.addEventListener('DOMContentLoaded', function() {
           const isConfirmed = acceptedBy.length >= 4;
           
           events.push({
-            title: '', // Empty title - we'll use custom rendering
+            // Important: Leave title empty - we'll use custom rendering with no text
+            title: '',
             start: `${data.date}T${data.time}`,
             allDay: false,
             className: isConfirmed ? 'event-confirmed' : 'event-proposed',
