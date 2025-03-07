@@ -1,7 +1,4 @@
-// Ensure Firebase is available
-console.log("Firebase loading...");
-
-// Your Firebase config
+// Firebase Config (replace with your Firebase project config)
 const firebaseConfig = {
   apiKey: "AIzaSyBETUme1XqagHowwggApN53A2aINQcAiM8",
   authDomain: "badminton-meet.firebaseapp.com",
@@ -11,91 +8,124 @@ const firebaseConfig = {
   appId: "1:662574308710:web:b321b63596c2770b247ca7",
   measurementId: "G-2NCW3MYNWN"
 };
-
 // Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-console.log("Firebase initialized!");
+// Global Variables
+let currentUser = null;
 
-// Function to propose a meetup
-function proposeMeetup() {
-    console.log("Propose button clicked");
-    
-    const name = document.getElementById('nameInput').value;
-    const date = document.getElementById('dateInput').value;
-    const time = document.getElementById('timeInput').value;
+// Calendar Setup
+document.addEventListener('DOMContentLoaded', function() {
+    var calendarEl = document.getElementById('calendar');
+    var calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        events: loadConfirmedEvents
+    });
+    calendar.render();
+});
 
-    if (!name || !date || !time) {
-        alert("Please fill all fields!");
-        return;
-    }
-
-    console.log("Sending data to Firestore...");
-
-    db.collection("proposals").add({
-        name,
-        date,
-        time,
-        acceptedBy: [],
-        confirmed: false
-    }).then(() => {
-        alert("Meetup proposed!");
-        console.log("Meetup successfully added!");
+// Login Function
+function login() {
+    const name = document.getElementById('user-name').value.trim();
+    if (name) {
+        currentUser = name;
+        document.getElementById('login-section').style.display = 'none';
+        document.getElementById('propose-section').style.display = 'block';
         loadProposals();
-    }).catch(error => {
-        console.error("Error adding document: ", error);
+    } else {
+        alert('Please enter your name!');
+    }
+}
+
+// Propose a Meetup
+function proposeMeetup() {
+    const date = document.getElementById('propose-date').value;
+    const time = document.getElementById('propose-time').value;
+    if (!date || !time || !currentUser) return;
+
+    db.collection('proposals').add({
+        date: date,
+        time: time,
+        proposedBy: currentUser,
+        acceptedBy: [currentUser],
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(() => {
+        loadProposals();
+        document.getElementById('propose-date').value = '';
+        document.getElementById('propose-time').value = '';
     });
 }
 
-// Function to load proposals
+// Load Proposals
 function loadProposals() {
-    console.log("Loading proposals...");
-    const proposalsList = document.getElementById('proposalsList');
+    const proposalsList = document.getElementById('proposals-list');
     proposalsList.innerHTML = '';
 
-    db.collection("proposals").get().then(snapshot => {
-        snapshot.forEach(doc => {
-            const data = doc.data();
-            const li = document.createElement('li');
-            li.innerHTML = `${data.date} ${data.time} - Proposed by ${data.name} 
-                (<b>${data.acceptedBy.length}</b> acceptances)
-                <button onclick="acceptProposal('${doc.id}')">Accept</button>`;
+    db.collection('proposals')
+        .orderBy('createdAt', 'desc')
+        .onSnapshot(snapshot => {
+            snapshot.forEach(doc => {
+                const proposal = doc.data();
+                const div = document.createElement('div');
+                div.className = 'proposal';
+                div.innerHTML = `
+                    <p>${proposal.date} at ${proposal.time} (by ${proposal.proposedBy})</p>
+                    <p>Accepted: ${proposal.acceptedBy.join(', ')} (${proposal.acceptedBy.length}/4)</p>
+                    <button onclick="toggleAcceptance('${doc.id}', ${proposal.acceptedBy.includes(currentUser)})">
+                        ${proposal.acceptedBy.includes(currentUser) ? 'Leave' : 'Join'}
+                    </button>
+                `;
+                proposalsList.appendChild(div);
 
-            proposalsList.appendChild(li);
+                // If 4+ acceptances, add to calendar
+                if (proposal.acceptedBy.length >= 4) {
+                    addToCalendar(proposal);
+                }
+            });
         });
-    });
 }
 
-// Function to accept a proposal
-function acceptProposal(id) {
-    console.log("Accepting proposal:", id);
-    
-    db.collection("proposals").doc(id).get().then(doc => {
-        if (doc.exists) {
-            let data = doc.data();
-            const name = document.getElementById('nameInput').value;
-
-            if (!name) {
-                alert("Enter your name first!");
-                return;
-            }
-
-            if (!data.acceptedBy.includes(name)) {
-                data.acceptedBy.push(name);
-            }
-
-            if (data.acceptedBy.length >= 4) {
-                data.confirmed = true;
-            }
-
-            db.collection("proposals").doc(id).update(data).then(() => {
-                alert("Proposal accepted!");
-                loadProposals();
+// Toggle Acceptance
+function toggleAcceptance(proposalId, isAccepted) {
+    const proposalRef = db.collection('proposals').doc(proposalId);
+    proposalRef.get().then(doc => {
+        const acceptedBy = doc.data().acceptedBy;
+        if (isAccepted) {
+            proposalRef.update({
+                acceptedBy: acceptedBy.filter(name => name !== currentUser)
+            });
+        } else {
+            proposalRef.update({
+                acceptedBy: firebase.firestore.FieldValue.arrayUnion(currentUser)
             });
         }
     });
 }
 
-// Load proposals on startup
-window.onload = loadProposals;
+// Load Confirmed Events for Calendar
+function loadConfirmedEvents(fetchInfo, successCallback) {
+    db.collection('proposals')
+        .where('acceptedBy', 'array-contains-any', [])
+        .get()
+        .then(snapshot => {
+            const events = [];
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                if (data.acceptedBy.length >= 4) {
+                    events.push({
+                        title: `Badminton Meet (${data.acceptedBy.length})`,
+                        start: `${data.date}T${data.time}`,
+                        allDay: false
+                    });
+                }
+            });
+            successCallback(events);
+        });
+}
+
+// Add to Calendar (updates live)
+function addToCalendar(proposal) {
+    const calendar = document.getElementById('calendar')._calendarApi;
+    calendar.refetchEvents();
+}
