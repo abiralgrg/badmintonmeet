@@ -4,18 +4,29 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Badminton Meet</title>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
-    <script defer src="script.js"></script>
 </head>
 <body>
     <h1>Badminton Meet</h1>
+
+    <label for="nameInput">Your Name:</label>
     <input type="text" id="nameInput" placeholder="Enter your name">
+    
+    <label for="dateInput">Date:</label>
     <input type="date" id="dateInput">
+    
+    <label for="timeInput">Time:</label>
     <input type="time" id="timeInput">
+    
     <button onclick="proposeMeetup()">Propose Meetup</button>
 
     <h2>Proposed Meetups</h2>
     <ul id="proposalsList"></ul>
+
+    <!-- Load Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+    <!-- Link to JavaScript file -->
+    <script defer src="script.js"></script>
 </body>
 </html>
