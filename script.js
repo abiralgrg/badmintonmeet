@@ -16,26 +16,31 @@ document.addEventListener('DOMContentLoaded', function() {
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
 
-  // Calendar Setup
+  // Calendar Setup with enhanced configuration
   const calendarEl = document.getElementById('calendar');
   const calendar = new FullCalendar.Calendar(calendarEl, {
     initialView: 'dayGridMonth',
     events: loadAllEvents,
-    // IMPORTANT: Use custom rendering to show only symbols
     eventContent: function(arg) {
-      const symbolEl = document.createElement('div');
-      symbolEl.className = 'event-symbol';
+      // Create custom content with just a symbol
+      const eventSymbol = document.createElement('div');
+      eventSymbol.classList.add('event-symbol');
       
       if (arg.event.extendedProps.status === 'confirmed') {
-        symbolEl.innerHTML = '✓';
-        symbolEl.className += ' confirmed-symbol';
+        eventSymbol.innerHTML = '✓'; // Tick mark for confirmed
+        eventSymbol.classList.add('confirmed-symbol');
       } else {
-        symbolEl.innerHTML = '○';
-        symbolEl.className += ' proposed-symbol';
+        eventSymbol.innerHTML = '○'; // Circle for proposed
+        eventSymbol.classList.add('proposed-symbol');
       }
       
-      // Return ONLY the symbol element with no title text
-      return { domNodes: [symbolEl] };
+      const wrapper = document.createElement('div');
+      wrapper.style.width = '100%';
+      wrapper.style.height = '100%';
+      wrapper.style.position = 'relative';
+      wrapper.appendChild(eventSymbol);
+      
+      return { domNodes: [wrapper] };
     },
     eventDidMount: function(info) {
       // Add tooltip with participants and info
@@ -44,7 +49,17 @@ document.addEventListener('DOMContentLoaded', function() {
       const status = info.event.extendedProps.status === 'confirmed' ? 'Confirmed' : 'Proposed';
       
       info.el.title = `${status} Badminton (${count}/4)\nParticipants: ${participantsText}`;
-    }
+      
+      // Make parent take full width of the day cell
+      const harness = info.el.closest('.fc-daygrid-event-harness');
+      if (harness) {
+        harness.style.width = '100%';
+        harness.style.margin = '0';
+      }
+    },
+    height: 'auto',
+    // Remove time text from events
+    displayEventTime: false
   });
   calendar.render();
 
@@ -76,6 +91,7 @@ document.addEventListener('DOMContentLoaded', function() {
       loadProposals();
       document.getElementById('propose-date').value = '';
       document.getElementById('propose-time').value = '';
+      // Refresh calendar to show the new proposal
       calendar.refetchEvents();
     }).catch(error => console.error("Propose error:", error));
   };
@@ -91,7 +107,7 @@ document.addEventListener('DOMContentLoaded', function() {
         snapshot.forEach(doc => {
           const proposal = doc.data();
           
-          // Ensure acceptedBy is an array
+          // Ensure acceptedBy is an array - this is the key fix
           const acceptedBy = Array.isArray(proposal.acceptedBy) ? proposal.acceptedBy : [];
           const acceptedCount = acceptedBy.length;
           
@@ -106,6 +122,8 @@ document.addEventListener('DOMContentLoaded', function() {
           `;
           proposalsList.appendChild(div);
         });
+        
+        // Refresh calendar when proposals change
         calendar.refetchEvents();
       }, error => console.error("Error loading proposals:", error));
   }
@@ -132,11 +150,12 @@ document.addEventListener('DOMContentLoaded', function() {
         });
       }
       
+      // Refresh calendar when proposal is updated
       calendar.refetchEvents();
     }).catch(error => console.error("Toggle error:", error));
   };
 
-  // Load All Events - SUPER CLEAN, NO TEXT
+  // Load All Events (both proposed and confirmed)
   function loadAllEvents(fetchInfo, successCallback) {
     db.collection('proposals')
       .get()
@@ -149,8 +168,7 @@ document.addEventListener('DOMContentLoaded', function() {
           const isConfirmed = acceptedBy.length >= 4;
           
           events.push({
-            // Important: Leave title empty - we'll use custom rendering with no text
-            title: '',
+            title: '', // Empty title - we'll use custom rendering
             start: `${data.date}T${data.time}`,
             allDay: false,
             className: isConfirmed ? 'event-confirmed' : 'event-proposed',
