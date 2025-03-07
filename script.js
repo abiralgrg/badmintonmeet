@@ -9,15 +9,6 @@ const firebaseConfig = {
   measurementId: "G-2NCW3MYNWN"
 };
 
-const firebaseConfig = {
-    apiKey: "AIzaSy...",
-    authDomain: "badminton-meet.firebaseapp.com",
-    projectId: "badminton-meet",
-    storageBucket: "badminton-meet.appspot.com",
-    messagingSenderId: "123...",
-    appId: "1:123...:web:abc..."
-};
-
 // Global Variables
 let currentUser = null;
 
