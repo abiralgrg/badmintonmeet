@@ -37,47 +37,58 @@ input {
     width: 90%;
 }
 
-/* Calendar event styling */
+/* Clean, minimalist calendar event styling */
 .event-proposed {
     background-color: #f5f5f5 !important;
     border-color: #ddd !important;
+    border-radius: 4px !important;
 }
 
 .event-confirmed {
     background-color: #a5d6a7 !important;
     border-color: #4caf50 !important;
+    border-radius: 4px !important;
 }
 
-/* Symbol styling */
+/* Pure symbol styling - no text */
 .event-symbol {
     display: flex;
     justify-content: center;
     align-items: center;
     height: 100%;
     width: 100%;
+    margin: 0;
+    padding: 0;
 }
 
 .confirmed-symbol {
     color: #2e7d32;
-    font-size: 24px;
+    font-size: 20px;
     font-weight: bold;
 }
 
 .proposed-symbol {
     color: #666;
-    font-size: 22px;
+    font-size: 18px;
 }
 
-/* Hover effect for calendar events */
-.fc-event:hover {
-    opacity: 0.9;
-    cursor: pointer;
+/* Important: Override any FullCalendar title styling */
+.fc-event-title,
+.fc-event-title-container {
+    display: none !important;
 }
 
-/* Make sure events are high enough to show the symbols */
+/* Ensure events are tall enough to show symbols only */
 .fc-daygrid-event {
-    min-height: 26px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    min-height: 24px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 !important;
+    margin: 1px !important;
+}
+
+/* Remove time text */
+.fc-event-time {
+    display: none !important;
 }
