@@ -13,17 +13,23 @@ const firebaseConfig = {
 let currentUser = null;
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize Firebase
+    // Check if Firebase SDK is loaded
     if (typeof firebase === 'undefined') {
         console.error('Firebase SDK not loaded. Check your script tag.');
         return;
     }
+
+    // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
     // Calendar Setup
-    var calendarEl = document.getElementById('calendar');
-    var calendar = new FullCalendar.Calendar(calendarEl, {
+    const calendarEl = document.getElementById('calendar');
+    if (!calendarEl) {
+        console.error('Calendar element not found!');
+        return;
+    }
+    const calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'dayGridMonth',
         events: loadConfirmedEvents
     });
@@ -60,6 +66,7 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('propose-time').value = '';
         }).catch(error => {
             console.error('Error proposing meetup:', error);
+            alert('Failed to propose meetup. Check console for details.');
         });
     };
 
@@ -75,7 +82,7 @@ document.addEventListener('DOMContentLoaded', function() {
         db.collection('proposals')
             .orderBy('createdAt', 'desc')
             .onSnapshot(snapshot => {
-                proposalsList.innerHTML = ''; // Clear before re-rendering
+                proposalsList.innerHTML = '';
                 snapshot.forEach(doc => {
                     const proposal = doc.data();
                     const div = document.createElement('div');
@@ -91,7 +98,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             }, error => {
                 console.error('Error loading proposals:', error);
-                proposalsList.innerHTML = 'Failed to load proposals. Check console for details.';
+                proposalsList.innerHTML = 'Failed to load proposals. Check console.';
             });
     }
 
@@ -99,7 +106,11 @@ document.addEventListener('DOMContentLoaded', function() {
     window.toggleAcceptance = function(proposalId, isAccepted) {
         const proposalRef = db.collection('proposals').doc(proposalId);
         proposalRef.get().then(doc => {
-            const acceptedBy = doc.data().acceptedBy;
+            if (!doc.exists) {
+                console.error('Proposal not found:', proposalId);
+                return;
+            }
+            const acceptedBy = doc.data().acceptedBy || [];
             if (isAccepted) {
                 proposalRef.update({
                     acceptedBy: acceptedBy.filter(name => name !== currentUser)
