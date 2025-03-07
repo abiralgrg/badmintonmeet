@@ -16,11 +16,20 @@ document.addEventListener('DOMContentLoaded', function() {
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
 
-  // Calendar Setup
+  // Calendar Setup with enhanced configuration
   const calendarEl = document.getElementById('calendar');
   const calendar = new FullCalendar.Calendar(calendarEl, {
     initialView: 'dayGridMonth',
-    events: loadConfirmedEvents
+    events: loadAllEvents,
+    eventClassNames: function(arg) {
+      return arg.event.extendedProps.status === 'confirmed' ? 'event-confirmed' : 'event-proposed';
+    },
+    eventDidMount: function(info) {
+      // Add tooltip with participants
+      if (info.event.extendedProps.participants) {
+        info.el.title = `Participants: ${info.event.extendedProps.participants.join(', ')}`;
+      }
+    }
   });
   calendar.render();
 
@@ -52,6 +61,8 @@ document.addEventListener('DOMContentLoaded', function() {
       loadProposals();
       document.getElementById('propose-date').value = '';
       document.getElementById('propose-time').value = '';
+      // Refresh calendar to show the new proposal
+      calendar.refetchEvents();
     }).catch(error => console.error("Propose error:", error));
   };
 
@@ -81,6 +92,9 @@ document.addEventListener('DOMContentLoaded', function() {
           `;
           proposalsList.appendChild(div);
         });
+        
+        // Refresh calendar when proposals change
+        calendar.refetchEvents();
       }, error => console.error("Error loading proposals:", error));
   }
 
@@ -105,27 +119,35 @@ document.addEventListener('DOMContentLoaded', function() {
           acceptedBy: firebase.firestore.FieldValue.arrayUnion(currentUser)
         });
       }
+      
+      // Refresh calendar when proposal is updated
+      calendar.refetchEvents();
     }).catch(error => console.error("Toggle error:", error));
   };
 
-  // Load Confirmed Events
-  function loadConfirmedEvents(fetchInfo, successCallback) {
+  // Load All Events (both proposed and confirmed)
+  function loadAllEvents(fetchInfo, successCallback) {
     db.collection('proposals')
       .get()
       .then(snapshot => {
         const events = [];
         snapshot.forEach(doc => {
           const data = doc.data();
-          // Ensure acceptedBy is an array here too
+          // Ensure acceptedBy is an array
           const acceptedBy = Array.isArray(data.acceptedBy) ? data.acceptedBy : [];
+          const isConfirmed = acceptedBy.length >= 4;
           
-          if (acceptedBy.length >= 4) {
-            events.push({
-              title: `Badminton Meet (${acceptedBy.length})`,
-              start: `${data.date}T${data.time}`,
-              allDay: false
-            });
-          }
+          events.push({
+            title: isConfirmed 
+              ? `✓ Badminton Meet (${acceptedBy.length})` 
+              : `○ Proposed (${acceptedBy.length}/4)`,
+            start: `${data.date}T${data.time}`,
+            allDay: false,
+            extendedProps: {
+              status: isConfirmed ? 'confirmed' : 'proposed',
+              participants: acceptedBy
+            }
+          });
         });
         successCallback(events);
       })
