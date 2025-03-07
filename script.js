@@ -66,7 +66,7 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('propose-time').value = '';
         }).catch(error => {
             console.error('Error proposing meetup:', error);
-            alert('Failed to propose meetup. Check console for details.');
+            alert('Failed to propose meetup.');
         });
     };
 
@@ -98,7 +98,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             }, error => {
                 console.error('Error loading proposals:', error);
-                proposalsList.innerHTML = 'Failed to load proposals. Check console.';
+                proposalsList.innerHTML = 'Failed to load proposals.';
             });
     }
 
@@ -106,10 +106,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.toggleAcceptance = function(proposalId, isAccepted) {
         const proposalRef = db.collection('proposals').doc(proposalId);
         proposalRef.get().then(doc => {
-            if (!doc.exists) {
-                console.error('Proposal not found:', proposalId);
-                return;
-            }
+            if (!doc.exists) return;
             const acceptedBy = doc.data().acceptedBy || [];
             if (isAccepted) {
                 proposalRef.update({
@@ -128,12 +125,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // Load Confirmed Events for Calendar
     function loadConfirmedEvents(fetchInfo, successCallback) {
         db.collection('proposals')
-            .get()
+            .get() // Fetch all proposals
             .then(snapshot => {
                 const events = [];
                 snapshot.forEach(doc => {
                     const data = doc.data();
-                    if (data.acceptedBy && data.acceptedBy.length >= 4) {
+                    if (data.acceptedBy && data.acceptedBy.length >= 4) { // Filter client-side
                         events.push({
                             title: `Badminton Meet (${data.acceptedBy.length})`,
                             start: `${data.date}T${data.time}`,
