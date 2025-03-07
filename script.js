@@ -21,14 +21,28 @@ document.addEventListener('DOMContentLoaded', function() {
   const calendar = new FullCalendar.Calendar(calendarEl, {
     initialView: 'dayGridMonth',
     events: loadAllEvents,
-    eventClassNames: function(arg) {
-      return arg.event.extendedProps.status === 'confirmed' ? 'event-confirmed' : 'event-proposed';
+    eventContent: function(arg) {
+      // Create custom content with just a symbol
+      const eventSymbol = document.createElement('div');
+      eventSymbol.classList.add('event-symbol');
+      
+      if (arg.event.extendedProps.status === 'confirmed') {
+        eventSymbol.innerHTML = '✓'; // Tick mark for confirmed
+        eventSymbol.classList.add('confirmed-symbol');
+      } else {
+        eventSymbol.innerHTML = '○'; // Circle for proposed
+        eventSymbol.classList.add('proposed-symbol');
+      }
+      
+      return { domNodes: [eventSymbol] };
     },
     eventDidMount: function(info) {
-      // Add tooltip with participants
-      if (info.event.extendedProps.participants) {
-        info.el.title = `Participants: ${info.event.extendedProps.participants.join(', ')}`;
-      }
+      // Add tooltip with participants and info
+      const participantsText = info.event.extendedProps.participants.join(', ');
+      const count = info.event.extendedProps.participants.length;
+      const status = info.event.extendedProps.status === 'confirmed' ? 'Confirmed' : 'Proposed';
+      
+      info.el.title = `${status} Badminton (${count}/4)\nParticipants: ${participantsText}`;
     }
   });
   calendar.render();
@@ -138,11 +152,10 @@ document.addEventListener('DOMContentLoaded', function() {
           const isConfirmed = acceptedBy.length >= 4;
           
           events.push({
-            title: isConfirmed 
-              ? `✓ Badminton Meet (${acceptedBy.length})` 
-              : `○ Proposed (${acceptedBy.length}/4)`,
+            title: '', // Empty title - we'll use custom rendering
             start: `${data.date}T${data.time}`,
             allDay: false,
+            className: isConfirmed ? 'event-confirmed' : 'event-proposed',
             extendedProps: {
               status: isConfirmed ? 'confirmed' : 'proposed',
               participants: acceptedBy
