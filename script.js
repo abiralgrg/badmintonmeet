@@ -65,13 +65,18 @@ document.addEventListener('DOMContentLoaded', function() {
         proposalsList.innerHTML = '';
         snapshot.forEach(doc => {
           const proposal = doc.data();
+          
+          // Ensure acceptedBy is an array - this is the key fix
+          const acceptedBy = Array.isArray(proposal.acceptedBy) ? proposal.acceptedBy : [];
+          const acceptedCount = acceptedBy.length;
+          
           const div = document.createElement('div');
           div.className = 'proposal';
           div.innerHTML = `
             <p>${proposal.date} at ${proposal.time} (by ${proposal.proposedBy})</p>
-            <p>Accepted: ${proposal.acceptedBy.join(', ')} (${proposal.acceptedBy.length}/4)</p>
-            <button onclick="toggleAcceptance('${doc.id}', ${proposal.acceptedBy.includes(currentUser)})">
-              ${proposal.acceptedBy.includes(currentUser) ? 'Leave' : 'Join'}
+            <p>Accepted: ${acceptedBy.join(', ')} (${acceptedCount}/4)</p>
+            <button onclick="toggleAcceptance('${doc.id}', ${acceptedBy.includes(currentUser)})">
+              ${acceptedBy.includes(currentUser) ? 'Leave' : 'Join'}
             </button>
           `;
           proposalsList.appendChild(div);
@@ -84,7 +89,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const proposalRef = db.collection('proposals').doc(proposalId);
     proposalRef.get().then(doc => {
       if (!doc.exists) return;
-      const acceptedBy = doc.data().acceptedBy || [];
+      let acceptedBy = doc.data().acceptedBy || [];
+      
+      // Ensure acceptedBy is an array
+      if (!Array.isArray(acceptedBy)) {
+        acceptedBy = [];
+      }
+      
       if (isAccepted) {
         proposalRef.update({
           acceptedBy: acceptedBy.filter(name => name !== currentUser)
@@ -105,9 +116,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const events = [];
         snapshot.forEach(doc => {
           const data = doc.data();
-          if (data.acceptedBy && data.acceptedBy.length >= 4) {
+          // Ensure acceptedBy is an array here too
+          const acceptedBy = Array.isArray(data.acceptedBy) ? data.acceptedBy : [];
+          
+          if (acceptedBy.length >= 4) {
             events.push({
-              title: `Badminton Meet (${data.acceptedBy.length})`,
+              title: `Badminton Meet (${acceptedBy.length})`,
               start: `${data.date}T${data.time}`,
               allDay: false
             });
