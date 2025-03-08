@@ -16,68 +16,25 @@ document.addEventListener('DOMContentLoaded', function() {
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
 
-  // Calendar Setup with minimalist symbols
+  // Calendar Setup with bold centered symbols
   const calendarEl = document.getElementById('calendar');
   const calendar = new FullCalendar.Calendar(calendarEl, {
     initialView: 'dayGridMonth',
-    height: 'auto',
-    dayCellContent: function(arg) {
-      // Fetch proposals for this date dynamically
-      const dateStr = arg.date.toISOString().split('T')[0]; // YYYY-MM-DD
-      const symbolContainer = document.createElement('div');
-      symbolContainer.classList.add('day-symbol-container');
-
-      db.collection('proposals')
-        .where('date', '==', dateStr)
-        .get()
-        .then(snapshot => {
-          let hasProposed = false;
-          let hasConfirmed = false;
-          snapshot.forEach(doc => {
-            const data = doc.data();
-            const acceptedBy = Array.isArray(data.acceptedBy) ? data.acceptedBy : [];
-            if (acceptedBy.length >= 4) {
-              hasConfirmed = true;
-            } else {
-              hasProposed = true;
-            }
-          });
-
-          if (hasConfirmed) {
-            const confirmedSymbol = document.createElement('span');
-            confirmedSymbol.innerHTML = '✓';
-            confirmedSymbol.classList.add('confirmed-symbol');
-            symbolContainer.appendChild(confirmedSymbol);
-          } else if (hasProposed) {
-            const proposedSymbol = document.createElement('span');
-            proposedSymbol.innerHTML = '○';
-            proposedSymbol.classList.add('proposed-symbol');
-            symbolContainer.appendChild(proposedSymbol);
-          }
-        });
-
-      return { domNodes: [symbolContainer] };
+    events: loadAllEvents,
+    eventContent: function(arg) {
+      const symbol = document.createElement('span');
+      symbol.classList.add('event-symbol');
+      symbol.innerHTML = arg.event.extendedProps.status === 'confirmed' ? '✓' : '○';
+      return { domNodes: [symbol] };
     },
-    dayCellDidMount: function(arg) {
-      // Add tooltip with details
-      const dateStr = arg.date.toISOString().split('T')[0];
-      db.collection('proposals')
-        .where('date', '==', dateStr)
-        .get()
-        .then(snapshot => {
-          let tooltipText = '';
-          snapshot.forEach(doc => {
-            const data = doc.data();
-            const acceptedBy = Array.isArray(data.acceptedBy) ? data.acceptedBy : [];
-            const status = acceptedBy.length >= 4 ? 'Confirmed' : 'Proposed';
-            const participantsText = acceptedBy.join(', ');
-            tooltipText += `${status} Badminton (${acceptedBy.length}/4) at ${data.time}\nParticipants: ${participantsText}\n`;
-          });
-          if (tooltipText) {
-            arg.el.title = tooltipText.trim();
-          }
-        });
-    }
+    eventDidMount: function(info) {
+      const participantsText = info.event.extendedProps.participants.join(', ');
+      const count = info.event.extendedProps.participants.length;
+      const status = info.event.extendedProps.status === 'confirmed' ? 'Confirmed' : 'Proposed';
+      info.el.title = `${status} Badminton (${count}/4)\nParticipants: ${participantsText}`;
+    },
+    height: 'auto',
+    displayEventTime: false
   });
   calendar.render();
 
@@ -109,7 +66,7 @@ document.addEventListener('DOMContentLoaded', function() {
       loadProposals();
       document.getElementById('propose-date').value = '';
       document.getElementById('propose-time').value = '';
-      calendar.render(); // Re-render calendar to update symbols
+      calendar.refetchEvents();
     }).catch(error => console.error("Propose error:", error));
   };
 
@@ -137,7 +94,7 @@ document.addEventListener('DOMContentLoaded', function() {
           `;
           proposalsList.appendChild(div);
         });
-        calendar.render(); // Re-render calendar when proposals change
+        calendar.refetchEvents();
       }, error => console.error("Error loading proposals:", error));
   }
 
@@ -158,7 +115,36 @@ document.addEventListener('DOMContentLoaded', function() {
           acceptedBy: firebase.firestore.FieldValue.arrayUnion(currentUser)
         });
       }
-      calendar.render(); // Re-render calendar when updated
+      calendar.refetchEvents();
     }).catch(error => console.error("Toggle error:", error));
   };
+
+  // Load All Events
+  function loadAllEvents(fetchInfo, successCallback) {
+    db.collection('proposals')
+      .get()
+      .then(snapshot => {
+        const events = [];
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          const acceptedBy = Array.isArray(data.acceptedBy) ? data.acceptedBy : [];
+          const isConfirmed = acceptedBy.length >= 4;
+          
+          events.push({
+            title: '', // Empty title
+            start: `${data.date}T${data.time}`,
+            allDay: false,
+            extendedProps: {
+              status: isConfirmed ? 'confirmed' : 'proposed',
+              participants: acceptedBy
+            }
+          });
+        });
+        successCallback(events);
+      })
+      .catch(error => {
+        console.error("Error loading calendar events:", error);
+        successCallback([]);
+      });
+  }
 });
