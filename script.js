@@ -16,50 +16,68 @@ document.addEventListener('DOMContentLoaded', function() {
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
 
-  // Calendar Setup with enhanced configuration
+  // Calendar Setup with minimalist symbols
   const calendarEl = document.getElementById('calendar');
   const calendar = new FullCalendar.Calendar(calendarEl, {
     initialView: 'dayGridMonth',
-    events: loadAllEvents,
-    eventContent: function(arg) {
-      // Create custom content with just a symbol
-      const eventSymbol = document.createElement('div');
-      eventSymbol.classList.add('event-symbol');
-      
-      if (arg.event.extendedProps.status === 'confirmed') {
-        eventSymbol.innerHTML = '✓'; // Tick mark for confirmed
-        eventSymbol.classList.add('confirmed-symbol');
-      } else {
-        eventSymbol.innerHTML = '○'; // Circle for proposed
-        eventSymbol.classList.add('proposed-symbol');
-      }
-      
-      const wrapper = document.createElement('div');
-      wrapper.style.width = '100%';
-      wrapper.style.height = '100%';
-      wrapper.style.position = 'relative';
-      wrapper.appendChild(eventSymbol);
-      
-      return { domNodes: [wrapper] };
-    },
-    eventDidMount: function(info) {
-      // Add tooltip with participants and info
-      const participantsText = info.event.extendedProps.participants.join(', ');
-      const count = info.event.extendedProps.participants.length;
-      const status = info.event.extendedProps.status === 'confirmed' ? 'Confirmed' : 'Proposed';
-      
-      info.el.title = `${status} Badminton (${count}/4)\nParticipants: ${participantsText}`;
-      
-      // Make parent take full width of the day cell
-      const harness = info.el.closest('.fc-daygrid-event-harness');
-      if (harness) {
-        harness.style.width = '100%';
-        harness.style.margin = '0';
-      }
-    },
     height: 'auto',
-    // Remove time text from events
-    displayEventTime: false
+    dayCellContent: function(arg) {
+      // Fetch proposals for this date dynamically
+      const dateStr = arg.date.toISOString().split('T')[0]; // YYYY-MM-DD
+      const symbolContainer = document.createElement('div');
+      symbolContainer.classList.add('day-symbol-container');
+
+      db.collection('proposals')
+        .where('date', '==', dateStr)
+        .get()
+        .then(snapshot => {
+          let hasProposed = false;
+          let hasConfirmed = false;
+          snapshot.forEach(doc => {
+            const data = doc.data();
+            const acceptedBy = Array.isArray(data.acceptedBy) ? data.acceptedBy : [];
+            if (acceptedBy.length >= 4) {
+              hasConfirmed = true;
+            } else {
+              hasProposed = true;
+            }
+          });
+
+          if (hasConfirmed) {
+            const confirmedSymbol = document.createElement('span');
+            confirmedSymbol.innerHTML = '✓';
+            confirmedSymbol.classList.add('confirmed-symbol');
+            symbolContainer.appendChild(confirmedSymbol);
+          } else if (hasProposed) {
+            const proposedSymbol = document.createElement('span');
+            proposedSymbol.innerHTML = '○';
+            proposedSymbol.classList.add('proposed-symbol');
+            symbolContainer.appendChild(proposedSymbol);
+          }
+        });
+
+      return { domNodes: [symbolContainer] };
+    },
+    dayCellDidMount: function(arg) {
+      // Add tooltip with details
+      const dateStr = arg.date.toISOString().split('T')[0];
+      db.collection('proposals')
+        .where('date', '==', dateStr)
+        .get()
+        .then(snapshot => {
+          let tooltipText = '';
+          snapshot.forEach(doc => {
+            const data = doc.data();
+            const acceptedBy = Array.isArray(data.acceptedBy) ? data.acceptedBy : [];
+            const status = acceptedBy.length >= 4 ? 'Confirmed' : 'Proposed';
+            const participantsText = acceptedBy.join(', ');
+            tooltipText += `${status} Badminton (${acceptedBy.length}/4) at ${data.time}\nParticipants: ${participantsText}\n`;
+          });
+          if (tooltipText) {
+            arg.el.title = tooltipText.trim();
+          }
+        });
+    }
   });
   calendar.render();
 
@@ -91,8 +109,7 @@ document.addEventListener('DOMContentLoaded', function() {
       loadProposals();
       document.getElementById('propose-date').value = '';
       document.getElementById('propose-time').value = '';
-      // Refresh calendar to show the new proposal
-      calendar.refetchEvents();
+      calendar.render(); // Re-render calendar to update symbols
     }).catch(error => console.error("Propose error:", error));
   };
 
@@ -106,8 +123,6 @@ document.addEventListener('DOMContentLoaded', function() {
         proposalsList.innerHTML = '';
         snapshot.forEach(doc => {
           const proposal = doc.data();
-          
-          // Ensure acceptedBy is an array - this is the key fix
           const acceptedBy = Array.isArray(proposal.acceptedBy) ? proposal.acceptedBy : [];
           const acceptedCount = acceptedBy.length;
           
@@ -122,9 +137,7 @@ document.addEventListener('DOMContentLoaded', function() {
           `;
           proposalsList.appendChild(div);
         });
-        
-        // Refresh calendar when proposals change
-        calendar.refetchEvents();
+        calendar.render(); // Re-render calendar when proposals change
       }, error => console.error("Error loading proposals:", error));
   }
 
@@ -134,11 +147,7 @@ document.addEventListener('DOMContentLoaded', function() {
     proposalRef.get().then(doc => {
       if (!doc.exists) return;
       let acceptedBy = doc.data().acceptedBy || [];
-      
-      // Ensure acceptedBy is an array
-      if (!Array.isArray(acceptedBy)) {
-        acceptedBy = [];
-      }
+      if (!Array.isArray(acceptedBy)) acceptedBy = [];
       
       if (isAccepted) {
         proposalRef.update({
@@ -149,40 +158,7 @@ document.addEventListener('DOMContentLoaded', function() {
           acceptedBy: firebase.firestore.FieldValue.arrayUnion(currentUser)
         });
       }
-      
-      // Refresh calendar when proposal is updated
-      calendar.refetchEvents();
+      calendar.render(); // Re-render calendar when updated
     }).catch(error => console.error("Toggle error:", error));
   };
-
-  // Load All Events (both proposed and confirmed)
-  function loadAllEvents(fetchInfo, successCallback) {
-    db.collection('proposals')
-      .get()
-      .then(snapshot => {
-        const events = [];
-        snapshot.forEach(doc => {
-          const data = doc.data();
-          // Ensure acceptedBy is an array
-          const acceptedBy = Array.isArray(data.acceptedBy) ? data.acceptedBy : [];
-          const isConfirmed = acceptedBy.length >= 4;
-          
-          events.push({
-            title: '', // Empty title - we'll use custom rendering
-            start: `${data.date}T${data.time}`,
-            allDay: false,
-            className: isConfirmed ? 'event-confirmed' : 'event-proposed',
-            extendedProps: {
-              status: isConfirmed ? 'confirmed' : 'proposed',
-              participants: acceptedBy
-            }
-          });
-        });
-        successCallback(events);
-      })
-      .catch(error => {
-        console.error("Error loading calendar events:", error);
-        successCallback([]);
-      });
-  }
 });
