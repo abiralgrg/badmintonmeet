@@ -26,28 +26,6 @@ body {
     position: relative;
 }
 
-.toggle-container {
-    width: 100%;
-    display: flex;
-    justify-content: flex-end;
-    padding-bottom: 10px;
-}
-
-#toggle-view {
-    padding: 8px 12px;
-    background-color: #007bff;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 14px;
-    transition: 0.3s;
-}
-
-#toggle-view:hover {
-    background-color: #0056b3;
-}
-
 .view-container {
     width: 100%;
     height: 100%;
@@ -69,6 +47,25 @@ body {
 
 #discord-container {
     display: none;
+}
+
+/* Toggle button */
+#toggle-view {
+    position: absolute;
+    bottom: 15px;
+    right: 15px;
+    padding: 10px 15px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: 0.3s;
+}
+
+#toggle-view:hover {
+    background-color: #0056b3;
 }
 
 /* Proposal styling */
