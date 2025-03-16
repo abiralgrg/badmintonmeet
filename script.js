@@ -10,9 +10,9 @@ const firebaseConfig = {
 
 let currentUser = null;
 let calendar = null;
-const WEBHOOK_URL = "https://discord.com/api/webhooks/1350865378275754084/2zmhPDKsvH_NsvvBQbJ7MzVTHqlHBRejW-ujKIhdeTHlFGiWIYq6pgNtVT_8nEjMm9WG"; // Replace with your Discord webhook URL
-let notifiedProposals = new Set(); // Track which proposals have already sent notifications
-let notifiedNewProposals = new Set(); // Track new proposals that have sent notifications
+const WEBHOOK_URL = "https://discord.com/api/webhooks/1350865378275754084/2zmhPDKsvH_NsvvBQbJ7MzVTHqlHBRejW-ujKIhdeTHlFGiWIYq6pgNtVT_8nEjMm9WG";
+let notifiedProposals = new Set();
+let notifiedNewProposals = new Set();
 let isMobileView = false;
 
 document.addEventListener('DOMContentLoaded', function() {
