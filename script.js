@@ -12,9 +12,8 @@ const firebaseConfig = {
 // Global Variables
 let currentUser = null;
 let calendar = null;
-const WEBHOOK_URL = "https://discord.com/api/webhooks/1350865378275754084/2zmhPDKsvH_NsvvBQbJ7MzVTHqlHBRejW-ujKIhdeTHlFGiWIYq6pgNtVT_8nEjMm9WG"; // Replace with your Discord webhook URL
+const WEBHOOK_URL = "YOUR_DISCORD_WEBHOOK_URL"; // Replace with your Discord webhook URL
 let notifiedProposals = new Set(); // Track which proposals have already sent notifications
-let notifiedNewProposals = new Set(); // Track new proposal notifications
 
 document.addEventListener('DOMContentLoaded', function() {
   firebase.initializeApp(firebaseConfig);
@@ -86,29 +85,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const date = document.getElementById('propose-date').value;
     const time = document.getElementById('propose-time').value;
     if (!date || !time || !currentUser) return;
-    
-    // Create the proposal document
     db.collection('proposals').add({
       date: date,
       time: time,
       proposedBy: currentUser,
       acceptedBy: [currentUser],
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-      notified: false, // Track if confirmation Discord notification was sent
-      proposalNotified: false // Track if new proposal notification was sent
-    }).then((docRef) => {
-      const proposalId = docRef.id;
-      
-      // Send notification for new proposal
-      sendNewProposalNotification({
-        date: date,
-        time: time,
-        proposedBy: currentUser,
-        acceptedBy: [currentUser],
-        id: proposalId
-      });
-      
-      // Clear form and update UI
+      notified: false // Track if Discord notification was sent
+    }).then(() => {
       loadProposals();
       document.getElementById('propose-date').value = '';
       document.getElementById('propose-time').value = '';
@@ -132,8 +116,11 @@ document.addEventListener('DOMContentLoaded', function() {
           const isProposer = proposal.proposedBy === currentUser;
           const isConfirmed = acceptedCount >= 4;
           
-          // Skip notification logic here - we'll handle it only in toggleAcceptance
-          // This prevents duplicate notifications
+          // Check if this is newly confirmed and needs notification
+          if (isConfirmed && !proposal.notified && !notifiedProposals.has(proposalId)) {
+            sendDiscordNotification(proposal, proposalId);
+            notifiedProposals.add(proposalId);
+          }
           
           const div = document.createElement('div');
           div.className = `proposal ${isConfirmed ? 'confirmed' : ''}`;
@@ -169,36 +156,27 @@ document.addEventListener('DOMContentLoaded', function() {
         updatedAcceptedBy = [...acceptedBy, currentUser];
       }
       
-      // Update the database first
       proposalRef.update({
         acceptedBy: updatedAcceptedBy
       }).then(() => {
-        // Only after the update is complete, check if this action confirmed the meetup
-        // This is when a new person joined and made it exactly 4 people
-        if (updatedAcceptedBy.length === 4 && !proposal.notified && !isAccepted) {
-          // Double-check that we haven't already notified about this proposal
-          if (!notifiedProposals.has(proposalId)) {
-            notifiedProposals.add(proposalId);
-            
-            // Mark as notified immediately to prevent race conditions
-            proposalRef.update({ notified: true }).then(() => {
-              // Get the latest data after the update
-              proposalRef.get().then(updatedDoc => {
-                if (updatedDoc.exists) {
-                  const updatedProposal = updatedDoc.data();
-                  sendConfirmationNotification(updatedProposal, proposalId);
-                }
-              });
-            });
-          }
+        // Check if this action confirmed the meetup
+        if (updatedAcceptedBy.length >= 4 && !proposal.notified) {
+          proposalRef.get().then(updatedDoc => {
+            const updatedProposal = updatedDoc.data();
+            sendDiscordNotification(updatedProposal, proposalId);
+          });
         }
         calendar.refetchEvents();
       });
     }).catch(error => console.error("Toggle error:", error));
   };
 
-  // Send Discord Notification for Confirmed Meetups
-  function sendConfirmationNotification(proposal, proposalId) {
+  // Send Discord Notification
+  function sendDiscordNotification(proposal, proposalId) {
+    // Mark as notified in Firebase first
+    const proposalRef = db.collection('proposals').doc(proposalId);
+    proposalRef.update({ notified: true });
+    
     // Format date and time for better readability
     const formattedDate = formatDate(proposal.date);
     const timeStr = proposal.time;
@@ -237,8 +215,6 @@ document.addEventListener('DOMContentLoaded', function() {
       }]
     };
     
-    console.log("Sending confirmation notification");
-    
     // Send the notification to Discord webhook
     fetch(WEBHOOK_URL, {
       method: "POST",
@@ -251,76 +227,7 @@ document.addEventListener('DOMContentLoaded', function() {
       if (!response.ok) {
         throw new Error(`Discord webhook error: ${response.status}`);
       }
-      console.log("Discord confirmation notification sent successfully!");
-    })
-    .catch(error => console.error("Error sending Discord notification:", error));
-  }
-
-  // Send Discord Notification for New Proposals
-  function sendNewProposalNotification(proposal) {
-    // Mark as notified in Firebase
-    db.collection('proposals').doc(proposal.id).update({ proposalNotified: true });
-    notifiedNewProposals.add(proposal.id);
-    
-    // Format date and time for better readability
-    const formattedDate = formatDate(proposal.date);
-    const timeStr = proposal.time;
-    
-    // Calculate spots remaining
-    const spotsRemaining = 4 - proposal.acceptedBy.length;
-    
-    // Create rich embed for Discord webhook (without @everyone)
-    const webhookData = {
-      content: "A new badminton meet has been proposed! 🏸",
-      embeds: [{
-        title: "New Badminton Meetup Proposal",
-        color: 3447003, // Blue color
-        fields: [
-          {
-            name: "Date",
-            value: formattedDate,
-            inline: true
-          },
-          {
-            name: "Time",
-            value: timeStr,
-            inline: true
-          },
-          {
-            name: "Proposed By",
-            value: proposal.proposedBy,
-            inline: true
-          },
-          {
-            name: "Current Participants",
-            value: proposal.acceptedBy.join(", "),
-            inline: true
-          },
-          {
-            name: "Spots Remaining",
-            value: `${spotsRemaining} out of 4`,
-            inline: true
-          }
-        ],
-        footer: {
-          text: "Join in the app to secure your spot!"
-        }
-      }]
-    };
-    
-    // Send the notification to Discord webhook
-    fetch(WEBHOOK_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(webhookData)
-    })
-    .then(response => {
-      if (!response.ok) {
-        throw new Error(`Discord webhook error: ${response.status}`);
-      }
-      console.log("Discord new proposal notification sent successfully!");
+      console.log("Discord notification sent successfully!");
     })
     .catch(error => console.error("Error sending Discord notification:", error));
   }
@@ -336,15 +243,8 @@ document.addEventListener('DOMContentLoaded', function() {
       const data = doc.data();
       // Only allow deletion if current user is the proposer
       if (data.proposedBy === currentUser) {
-        // Store data before deletion for notification
-        const proposalData = {...data};
-        
         proposalRef.delete().then(() => {
           console.log("Proposal successfully deleted!");
-          
-          // Notify Discord that the proposal was deleted
-          sendProposalDeletedNotification(proposalData);
-          
           calendar.refetchEvents();
         }).catch(error => {
           console.error("Error deleting proposal:", error);
@@ -356,63 +256,6 @@ document.addEventListener('DOMContentLoaded', function() {
       console.error("Error checking proposal:", error);
     });
   };
-
-  // Send notification when a proposal is deleted
-  function sendProposalDeletedNotification(proposal) {
-    // Format date and time for better readability
-    const formattedDate = formatDate(proposal.date);
-    const timeStr = proposal.time;
-    
-    // Create rich embed for Discord webhook
-    const webhookData = {
-      content: "A badminton meet has been canceled.",
-      embeds: [{
-        title: "Badminton Meetup Canceled",
-        color: 15548997, // Light red color
-        fields: [
-          {
-            name: "Date",
-            value: formattedDate,
-            inline: true
-          },
-          {
-            name: "Time",
-            value: timeStr,
-            inline: true
-          },
-          {
-            name: "Proposed By",
-            value: proposal.proposedBy,
-            inline: true
-          },
-          {
-            name: "Canceled By",
-            value: currentUser,
-            inline: true
-          }
-        ],
-        footer: {
-          text: "This meet has been removed from the schedule."
-        }
-      }]
-    };
-    
-    // Send the notification to Discord webhook
-    fetch(WEBHOOK_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(webhookData)
-    })
-    .then(response => {
-      if (!response.ok) {
-        throw new Error(`Discord webhook error: ${response.status}`);
-      }
-      console.log("Discord cancellation notification sent successfully!");
-    })
-    .catch(error => console.error("Error sending Discord notification:", error));
-  }
 
   // Load All Events
   function loadAllEvents(fetchInfo, successCallback) {
@@ -427,4 +270,42 @@ document.addEventListener('DOMContentLoaded', function() {
           
           events.push({
             title: '', // Empty title
-            start: `${data
+            start: `${data.date}T${data.time}`,
+            allDay: false,
+            extendedProps: {
+              status: isConfirmed ? 'confirmed' : 'proposed',
+              participants: acceptedBy
+            }
+          });
+        });
+        successCallback(events);
+      })
+      .catch(error => {
+        console.error("Error loading calendar events:", error);
+        successCallback([]);
+      });
+  }
+});
+
+// Toggle between calendar and chat views
+window.toggleView = function(viewName) {
+  const calendarContainer = document.getElementById('calendar-container');
+  const chatContainer = document.getElementById('chat-container');
+  const calendarToggle = document.getElementById('calendar-toggle');
+  const chatToggle = document.getElementById('chat-toggle');
+  
+  if (viewName === 'calendar') {
+    calendarContainer.style.display = 'flex';
+    chatContainer.style.display = 'none';
+    calendarToggle.classList.add('active');
+    chatToggle.classList.remove('active');
+    if (calendar) {
+      calendar.updateSize();
+    }
+  } else {
+    calendarContainer.style.display = 'none';
+    chatContainer.style.display = 'flex';
+    calendarToggle.classList.remove('active');
+    chatToggle.classList.add('active');
+  }
+};
