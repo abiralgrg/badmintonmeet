@@ -13,22 +13,14 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// Toggle View (Switch between Calendar and Discord)
-function toggleView() {
-    const calendarContainer = document.getElementById("calendar-container");
+// Toggle Chat Visibility
+function toggleChat() {
     const discordContainer = document.getElementById("discord-container");
-    const toggleButton = document.getElementById("toggle-view");
-
-    if (calendarContainer.style.display === "none") {
-        calendarContainer.style.display = "flex";
-        discordContainer.style.display = "none";
-        toggleButton.innerText = "💬 Chat";
+    if (discordContainer.style.display === "none") {
+        discordContainer.style.display = "block";
     } else {
-        calendarContainer.style.display = "none";
-        discordContainer.style.display = "flex";
-        toggleButton.innerText = "📅 Calendar";
+        discordContainer.style.display = "none";
     }
-}
 
 
 // Login Functionality
