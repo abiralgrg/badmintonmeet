@@ -326,7 +326,7 @@ document.addEventListener('DOMContentLoaded', function() {
           }
         ],
         footer: {
-          text: "Join the meet on the website!"
+          text: "Join the meet at https://abiralgrg.github.io/badmintonmeet."
         }
       }]
     };
