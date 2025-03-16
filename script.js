@@ -55,3 +55,21 @@ document.addEventListener('DOMContentLoaded', function() {
 // Function to Load Events
 function loadAllEvents(fetchInfo, successCallback) {
     db.collection('proposals')
+        .get()
+        .then(snapshot => {
+            const events = [];
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                events.push({
+                    title: 'Meetup',
+                    start: `${data.date}T${data.time}`,
+                    allDay: false
+                });
+            });
+            successCallback(events);
+        })
+        .catch(error => {
+            console.error("Error loading events:", error);
+            successCallback([]);
+        });
+}
