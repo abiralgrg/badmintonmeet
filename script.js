@@ -17,30 +17,23 @@ document.addEventListener('DOMContentLoaded', function() {
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
 
-  // Calendar Setup with time text instead of symbols
+  // Calendar Setup with text labels
   const calendarEl = document.getElementById('calendar');
   calendar = new FullCalendar.Calendar(calendarEl, {
     initialView: 'dayGridMonth',
     events: loadAllEvents,
     eventContent: function(arg) {
       const eventContainer = document.createElement('div');
-      eventContainer.classList.add('event-content');
-
-      const eventTitle = document.createElement('div');
-      eventTitle.classList.add('event-title');
+      eventContainer.classList.add('event-container');
       
-      const isConfirmed = arg.event.extendedProps.status === 'confirmed';
-      const time = arg.event.start.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+      const timeText = formatTime(arg.event.start);
       
-      if (isConfirmed) {
-        eventTitle.textContent = `Badminton Meet: ${time}`;
-        eventTitle.classList.add('confirmed-event');
+      if (arg.event.extendedProps.status === 'confirmed') {
+        eventContainer.innerHTML = `<div class="event-text confirmed">Badminton Meet @ ${timeText}</div>`;
       } else {
-        eventTitle.textContent = `Proposed: ${time}`;
-        eventTitle.classList.add('proposed-event');
+        eventContainer.innerHTML = `<div class="event-text proposed">Proposed: ${timeText}</div>`;
       }
       
-      eventContainer.appendChild(eventTitle);
       return { domNodes: [eventContainer] };
     },
     eventDidMount: function(info) {
@@ -53,6 +46,17 @@ document.addEventListener('DOMContentLoaded', function() {
     displayEventTime: false
   });
   calendar.render();
+  
+  // Format time from date object
+  function formatTime(dateObj) {
+    if (!dateObj) return '';
+    let hours = dateObj.getHours();
+    const minutes = dateObj.getMinutes().toString().padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12; // the hour '0' should be '12'
+    return `${hours}:${minutes} ${ampm}`;
+  }
   
   // Login
   window.login = function() {
