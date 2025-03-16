@@ -28,24 +28,17 @@ body {
     flex-grow: 1;
     display: flex;
     flex-direction: column;
-}
-
-#month-year-display {
-    font-size: 18px;
-    font-weight: bold;
-    margin-bottom: 10px;
-    text-align: center;
+    height: calc(100vh - 160px); /* Adjusting for header and button space */
 }
 
 #calendar {
     flex-grow: 1;
-    margin-top: 10px;
 }
 
 .view-toggle {
     display: flex;
     justify-content: center;
-    margin-bottom: 20px;
+    margin-top: 15px;
 }
 
 .view-toggle button {
@@ -156,7 +149,8 @@ input {
         width: 100%;
         padding: 10px;
     }
-    #calendar, #chat-container {
+    #calendar-container, #chat-container {
+        height: 500px;
         max-width: 100%;
     }
 }
