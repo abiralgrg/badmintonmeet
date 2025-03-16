@@ -26,6 +26,7 @@ document.addEventListener('DOMContentLoaded', function() {
     events: loadAllEvents,
     headerToolbar: {
       left: 'title',
+      center: '',
       right: 'prev,next'
     },
     eventContent: function(arg) {
