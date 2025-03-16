@@ -17,16 +17,31 @@ document.addEventListener('DOMContentLoaded', function() {
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
 
-  // Calendar Setup with bold centered symbols
+  // Calendar Setup with time text instead of symbols
   const calendarEl = document.getElementById('calendar');
   calendar = new FullCalendar.Calendar(calendarEl, {
     initialView: 'dayGridMonth',
     events: loadAllEvents,
     eventContent: function(arg) {
-      const symbol = document.createElement('span');
-      symbol.classList.add('event-symbol');
-      symbol.innerHTML = arg.event.extendedProps.status === 'confirmed' ? '✓' : '○';
-      return { domNodes: [symbol] };
+      const eventContainer = document.createElement('div');
+      eventContainer.classList.add('event-content');
+
+      const eventTitle = document.createElement('div');
+      eventTitle.classList.add('event-title');
+      
+      const isConfirmed = arg.event.extendedProps.status === 'confirmed';
+      const time = arg.event.start.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+      
+      if (isConfirmed) {
+        eventTitle.textContent = `Badminton Meet: ${time}`;
+        eventTitle.classList.add('confirmed-event');
+      } else {
+        eventTitle.textContent = `Proposed: ${time}`;
+        eventTitle.classList.add('proposed-event');
+      }
+      
+      eventContainer.appendChild(eventTitle);
+      return { domNodes: [eventContainer] };
     },
     eventDidMount: function(info) {
       const participantsText = info.event.extendedProps.participants.join(', ');
