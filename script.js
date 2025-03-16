@@ -25,9 +25,8 @@ document.addEventListener('DOMContentLoaded', function() {
     initialView: 'dayGridMonth',
     events: loadAllEvents,
     headerToolbar: {
-      left: 'prev,next',
-      center: 'title',
-      right: 'dayGridMonth,dayGridWeek'
+      left: 'title',
+      right: 'prev,next'
     },
     eventContent: function(arg) {
       const eventContainer = document.createElement('div');
