@@ -14,6 +14,7 @@ let currentUser = null;
 let calendar = null;
 const WEBHOOK_URL = "https://discord.com/api/webhooks/1350865378275754084/2zmhPDKsvH_NsvvBQbJ7MzVTHqlHBRejW-ujKIhdeTHlFGiWIYq6pgNtVT_8nEjMm9WG"; // Replace with your Discord webhook URL
 let notifiedProposals = new Set(); // Track which proposals have already sent notifications
+let notifiedNewProposals = new Set(); // Track new proposals that have sent notifications
 
 document.addEventListener('DOMContentLoaded', function() {
   firebase.initializeApp(firebaseConfig);
@@ -90,23 +91,38 @@ document.addEventListener('DOMContentLoaded', function() {
     const date = document.getElementById('propose-date').value;
     const time = document.getElementById('propose-time').value;
     if (!date || !time || !currentUser) return;
+    
+    // Create proposal in Firestore
     db.collection('proposals').add({
       date: date,
       time: time,
       proposedBy: currentUser,
       acceptedBy: [currentUser],
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-      notified: false // Track if Discord notification was sent
+      notified: false, // Track if confirmation notification was sent
+      proposalNotified: false // Track if proposal notification was sent
     }).then((docRef) => {
       const proposalId = docRef.id;
-      // Send Discord notification for new proposal
-      sendProposalNotification({
+      const proposalData = {
         date: date,
         time: time,
         proposedBy: currentUser,
-        acceptedBy: [currentUser]
-      }, proposalId);
+        acceptedBy: [currentUser],
+        id: proposalId
+      };
       
+      // Send Discord notification for new proposal
+      if (!notifiedNewProposals.has(proposalId)) {
+        sendProposalNotification(proposalData);
+        notifiedNewProposals.add(proposalId);
+        
+        // Update the proposal to mark it as notified
+        db.collection('proposals').doc(proposalId).update({
+          proposalNotified: true
+        });
+      }
+      
+      // Clear form and refresh
       loadProposals();
       document.getElementById('propose-date').value = '';
       document.getElementById('propose-time').value = '';
@@ -174,10 +190,11 @@ document.addEventListener('DOMContentLoaded', function() {
         acceptedBy: updatedAcceptedBy
       }).then(() => {
         // Check if this action confirmed the meetup
-        if (updatedAcceptedBy.length >= 4 && !proposal.notified) {
+        if (updatedAcceptedBy.length >= 4 && !proposal.notified && !notifiedProposals.has(proposalId)) {
           proposalRef.get().then(updatedDoc => {
             const updatedProposal = updatedDoc.data();
             sendConfirmationNotification(updatedProposal, proposalId);
+            notifiedProposals.add(proposalId);
           });
         }
         calendar.refetchEvents();
@@ -186,16 +203,16 @@ document.addEventListener('DOMContentLoaded', function() {
   };
 
   // Send Discord Notification for a new proposal
-  function sendProposalNotification(proposal, proposalId) {
+  function sendProposalNotification(proposal) {
     // Format date and time for better readability
     const formattedDate = formatDate(proposal.date);
     const timeStr = proposal.time;
     
     // Create rich embed for Discord webhook
     const webhookData = {
-      content: "A new badminton meet proposal has been made!",
+      content: "New badminton meet proposal!",
       embeds: [{
-        title: "Badminton Meet Proposal",
+        title: "New Badminton Meet Proposal",
         color: 3447003, // Blue color
         fields: [
           {
@@ -220,7 +237,7 @@ document.addEventListener('DOMContentLoaded', function() {
           }
         ],
         footer: {
-          text: "Join the meet on the website!"
+          text: "Join the meetup in the Badminton Meet app!"
         }
       }]
     };
