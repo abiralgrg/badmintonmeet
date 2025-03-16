@@ -30,13 +30,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function updateLayoutForScreenSize() {
     if (isMobileView) {
-      // Mobile layout: Hide calendar and chat sections
+
       document.querySelector('.main').style.display = 'none';
       document.querySelector('.sidebar').style.width = '100%';
       document.querySelector('.sidebar').style.minWidth = '100%';
       document.querySelector('.container').style.flexDirection = 'column';
       
-      // Add mobile title at the top
+
       const sidebarTitle = document.createElement('h1');
       sidebarTitle.textContent = 'Badminton Meet';
       sidebarTitle.classList.add('mobile-title');
@@ -46,24 +46,24 @@ document.addEventListener('DOMContentLoaded', function() {
         sidebar.insertBefore(sidebarTitle, sidebar.firstChild);
       }
     } else {
-      // Desktop layout: Show all sections
+
       document.querySelector('.main').style.display = 'flex';
       document.querySelector('.sidebar').style.width = '300px';
       document.querySelector('.sidebar').style.minWidth = '200px';
       document.querySelector('.container').style.flexDirection = 'row';
       
-      // Remove mobile title if it exists
+
       const mobileTitle = document.querySelector('.mobile-title');
       if (mobileTitle) {
         mobileTitle.remove();
       }
       
-      // Initialize calendar for desktop
+
       initializeCalendar();
     }
   }
 
-  // Define loadAllEvents function first
+
   function loadAllEvents(info, successCallback) {
     db.collection('proposals').get().then(snapshot => {
       const events = [];
@@ -94,7 +94,7 @@ document.addEventListener('DOMContentLoaded', function() {
       if (calendarEl) {
         calendar = new FullCalendar.Calendar(calendarEl, {
           initialView: 'dayGridMonth',
-          events: loadAllEvents, // This should now be defined
+          events: loadAllEvents, 
           headerToolbar: {
             left: 'title',
             center: '',
@@ -212,12 +212,12 @@ document.addEventListener('DOMContentLoaded', function() {
           const isProposer = proposal.proposedBy === currentUser;
           const isConfirmed = acceptedCount >= 4;
           
-          // Check if we need to send a notification for this confirmed proposal
+
           if (isConfirmed && !proposal.notified && !notifiedProposals.has(proposalId)) {
             sendConfirmationNotification(proposal, proposalId);
             notifiedProposals.add(proposalId);
             
-            // Update the notified flag in the database
+  
             db.collection('proposals').doc(proposalId).update({
               notified: true
             });
@@ -273,7 +273,7 @@ document.addEventListener('DOMContentLoaded', function() {
       proposalRef.update({
         acceptedBy: updatedAcceptedBy
       }).then(() => {
-        // We no longer check for notifications here since this will be handled by the onSnapshot listener
+
         if (calendar && !isMobileView) {
           calendar.refetchEvents();
         }
@@ -326,7 +326,7 @@ document.addEventListener('DOMContentLoaded', function() {
           }
         ],
         footer: {
-          text: "Join the meetup in the Badminton Meet app!"
+          text: "Join the meet on the website!"
         }
       }]
     };
@@ -400,7 +400,6 @@ document.addEventListener('DOMContentLoaded', function() {
     .catch(error => console.error("Error sending Discord notification:", error));
   }
 
-  // Initialize the app
   if (!isMobileView) {
     initializeCalendar();
   }
