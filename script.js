@@ -35,15 +35,9 @@ document.addEventListener('DOMContentLoaded', function() {
       info.el.title = `${status} Badminton (${count}/4)\nParticipants: ${participantsText}`;
     },
     height: '100%',
-    datesSet: function(info) {
-      updateMonthYearTitle(info.view.title);
-    },
     displayEventTime: false
   });
   calendar.render();
-
-  // Initialize widget bot
-  window.widgetbot = new WidgetBot("1321611322839793725", "1350810796510416896");
   
   // Login
   window.login = function() {
@@ -155,12 +149,6 @@ document.addEventListener('DOMContentLoaded', function() {
       });
   }
 });
-
-// Function to update the month/year title
-function updateMonthYearTitle(title) {
-  const monthYearDisplay = document.getElementById('month-year-display');
-  monthYearDisplay.textContent = title;
-}
 
 // Toggle between calendar and chat views
 window.toggleView = function(viewName) {
