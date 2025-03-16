@@ -24,6 +24,11 @@ document.addEventListener('DOMContentLoaded', function() {
   calendar = new FullCalendar.Calendar(calendarEl, {
     initialView: 'dayGridMonth',
     events: loadAllEvents,
+    headerToolbar: {
+      left: 'prev,next',
+      center: 'title',
+      right: 'dayGridMonth,dayGridWeek'
+    },
     eventContent: function(arg) {
       const eventContainer = document.createElement('div');
       eventContainer.classList.add('event-container');
