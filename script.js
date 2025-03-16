@@ -212,9 +212,15 @@ document.addEventListener('DOMContentLoaded', function() {
           const isProposer = proposal.proposedBy === currentUser;
           const isConfirmed = acceptedCount >= 4;
           
+          // Check if we need to send a notification for this confirmed proposal
           if (isConfirmed && !proposal.notified && !notifiedProposals.has(proposalId)) {
             sendConfirmationNotification(proposal, proposalId);
             notifiedProposals.add(proposalId);
+            
+            // Update the notified flag in the database
+            db.collection('proposals').doc(proposalId).update({
+              notified: true
+            });
           }
           
           const dateObj = new Date(proposal.date);
@@ -267,13 +273,7 @@ document.addEventListener('DOMContentLoaded', function() {
       proposalRef.update({
         acceptedBy: updatedAcceptedBy
       }).then(() => {
-        if (updatedAcceptedBy.length >= 4 && !proposal.notified && !notifiedProposals.has(proposalId)) {
-          proposalRef.get().then(updatedDoc => {
-            const updatedProposal = updatedDoc.data();
-            sendConfirmationNotification(updatedProposal, proposalId);
-            notifiedProposals.add(proposalId);
-          });
-        }
+        // We no longer check for notifications here since this will be handled by the onSnapshot listener
         if (calendar && !isMobileView) {
           calendar.refetchEvents();
         }
@@ -348,9 +348,6 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function sendConfirmationNotification(proposal, proposalId) {
-    const proposalRef = db.collection('proposals').doc(proposalId);
-    proposalRef.update({ notified: true });
-    
     const formattedDate = formatDate(proposal.date);
     const timeStr = proposal.time;
     
