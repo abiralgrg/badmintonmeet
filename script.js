@@ -17,15 +17,19 @@ const db = firebase.firestore();
 function toggleView() {
     const calendarContainer = document.getElementById("calendar-container");
     const discordContainer = document.getElementById("discord-container");
+    const toggleButton = document.getElementById("toggle-view");
 
     if (calendarContainer.style.display === "none") {
         calendarContainer.style.display = "flex";
         discordContainer.style.display = "none";
+        toggleButton.innerText = "💬 Chat";
     } else {
         calendarContainer.style.display = "none";
         discordContainer.style.display = "flex";
+        toggleButton.innerText = "📅 Calendar";
     }
 }
+
 
 // Login Functionality
 window.login = function() {
