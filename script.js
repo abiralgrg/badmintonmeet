@@ -12,6 +12,8 @@ const firebaseConfig = {
 // Global Variables
 let currentUser = null;
 let calendar = null;
+const WEBHOOK_URL = "https://discord.com/api/webhooks/1350865378275754084/2zmhPDKsvH_NsvvBQbJ7MzVTHqlHBRejW-ujKIhdeTHlFGiWIYq6pgNtVT_8nEjMm9WG"; // Replace with your Discord webhook URL
+let notifiedProposals = new Set(); // Track which proposals have already sent notifications
 
 document.addEventListener('DOMContentLoaded', function() {
   firebase.initializeApp(firebaseConfig);
@@ -58,6 +60,13 @@ document.addEventListener('DOMContentLoaded', function() {
     return `${hours}:${minutes} ${ampm}`;
   }
   
+  // Format date for display
+  function formatDate(dateStr) {
+    const date = new Date(dateStr);
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    return date.toLocaleDateString(undefined, options);
+  }
+  
   // Login
   window.login = function() {
     const name = document.getElementById('user-name').value.trim();
@@ -81,7 +90,8 @@ document.addEventListener('DOMContentLoaded', function() {
       time: time,
       proposedBy: currentUser,
       acceptedBy: [currentUser],
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      notified: false // Track if Discord notification was sent
     }).then(() => {
       loadProposals();
       document.getElementById('propose-date').value = '';
@@ -90,7 +100,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }).catch(error => console.error("Propose error:", error));
   };
 
-  // Load Proposals
+  // Load Proposals and check for notifications
   function loadProposals() {
     const proposalsList = document.getElementById('proposals-list');
     proposalsList.innerHTML = 'Loading proposals...';
@@ -100,20 +110,28 @@ document.addEventListener('DOMContentLoaded', function() {
         proposalsList.innerHTML = '';
         snapshot.forEach(doc => {
           const proposal = doc.data();
+          const proposalId = doc.id;
           const acceptedBy = Array.isArray(proposal.acceptedBy) ? proposal.acceptedBy : [];
           const acceptedCount = acceptedBy.length;
           const isProposer = proposal.proposedBy === currentUser;
+          const isConfirmed = acceptedCount >= 4;
+          
+          // Check if this is newly confirmed and needs notification
+          if (isConfirmed && !proposal.notified && !notifiedProposals.has(proposalId)) {
+            sendDiscordNotification(proposal, proposalId);
+            notifiedProposals.add(proposalId);
+          }
           
           const div = document.createElement('div');
-          div.className = 'proposal';
+          div.className = `proposal ${isConfirmed ? 'confirmed' : ''}`;
           div.innerHTML = `
             <p>${proposal.date} at ${proposal.time} (by ${proposal.proposedBy})</p>
             <p>Accepted: ${acceptedBy.join(', ')} (${acceptedCount}/4)</p>
             <div class="proposal-actions">
-              <button onclick="toggleAcceptance('${doc.id}', ${acceptedBy.includes(currentUser)})">
+              <button onclick="toggleAcceptance('${proposalId}', ${acceptedBy.includes(currentUser)})">
                 ${acceptedBy.includes(currentUser) ? 'Leave' : 'Join'}
               </button>
-              ${isProposer ? `<button class="delete-button" onclick="deleteProposal('${doc.id}')">Delete</button>` : ''}
+              ${isProposer ? `<button class="delete-button" onclick="deleteProposal('${proposalId}')">Delete</button>` : ''}
             </div>
           `;
           proposalsList.appendChild(div);
@@ -127,23 +145,94 @@ document.addEventListener('DOMContentLoaded', function() {
     const proposalRef = db.collection('proposals').doc(proposalId);
     proposalRef.get().then(doc => {
       if (!doc.exists) return;
-      let acceptedBy = doc.data().acceptedBy || [];
+      let proposal = doc.data();
+      let acceptedBy = proposal.acceptedBy || [];
       if (!Array.isArray(acceptedBy)) acceptedBy = [];
       
+      let updatedAcceptedBy;
       if (isAccepted) {
-        proposalRef.update({
-          acceptedBy: acceptedBy.filter(name => name !== currentUser)
-        });
+        updatedAcceptedBy = acceptedBy.filter(name => name !== currentUser);
       } else {
-        proposalRef.update({
-          acceptedBy: firebase.firestore.FieldValue.arrayUnion(currentUser)
-        });
+        updatedAcceptedBy = [...acceptedBy, currentUser];
       }
-      calendar.refetchEvents();
+      
+      proposalRef.update({
+        acceptedBy: updatedAcceptedBy
+      }).then(() => {
+        // Check if this action confirmed the meetup
+        if (updatedAcceptedBy.length >= 4 && !proposal.notified) {
+          proposalRef.get().then(updatedDoc => {
+            const updatedProposal = updatedDoc.data();
+            sendDiscordNotification(updatedProposal, proposalId);
+          });
+        }
+        calendar.refetchEvents();
+      });
     }).catch(error => console.error("Toggle error:", error));
   };
 
-  // Delete Proposal - New function
+  // Send Discord Notification
+  function sendDiscordNotification(proposal, proposalId) {
+    // Mark as notified in Firebase first
+    const proposalRef = db.collection('proposals').doc(proposalId);
+    proposalRef.update({ notified: true });
+    
+    // Format date and time for better readability
+    const formattedDate = formatDate(proposal.date);
+    const timeStr = proposal.time;
+    
+    // Create rich embed for Discord webhook
+    const webhookData = {
+      content: "@everyone A badminton meetup has been confirmed! :badminton:",
+      embeds: [{
+        title: "Badminton Meetup Confirmed!",
+        color: 5025616, // Green color
+        fields: [
+          {
+            name: "Date",
+            value: formattedDate,
+            inline: true
+          },
+          {
+            name: "Time",
+            value: timeStr,
+            inline: true
+          },
+          {
+            name: "Proposed By",
+            value: proposal.proposedBy,
+            inline: true
+          },
+          {
+            name: "Participants",
+            value: proposal.acceptedBy.join(", "),
+            inline: false
+          }
+        ],
+        footer: {
+          text: "See you on the court! 🏸"
+        }
+      }]
+    };
+    
+    // Send the notification to Discord webhook
+    fetch(WEBHOOK_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(webhookData)
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`Discord webhook error: ${response.status}`);
+      }
+      console.log("Discord notification sent successfully!");
+    })
+    .catch(error => console.error("Error sending Discord notification:", error));
+  }
+
+  // Delete Proposal
   window.deleteProposal = function(proposalId) {
     if (!currentUser) return;
     
