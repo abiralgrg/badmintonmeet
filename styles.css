@@ -185,6 +185,27 @@ input {
   background-color: #d32f2f;
 }
 
+.proposal.confirmed {
+  border-left: 4px solid #4caf50;
+  background-color: rgba(76, 175, 80, 0.1);
+}
+
+/* Existing proposal actions styles */
+.proposal-actions {
+  display: flex;
+  justify-content: flex-start;
+  gap: 8px;
+}
+
+.delete-button {
+  background-color: #f44336;
+  color: white;
+}
+
+.delete-button:hover {
+  background-color: #d32f2f;
+}
+
 /* Accessibility */
 button:focus, input:focus {
     outline: 2px solid #4caf50;
