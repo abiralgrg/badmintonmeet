@@ -12,7 +12,7 @@ const firebaseConfig = {
 // Global Variables
 let currentUser = null;
 let calendar = null;
-const WEBHOOK_URL = "YOUR_DISCORD_WEBHOOK_URL"; // Replace with your Discord webhook URL
+const WEBHOOK_URL = "https://discord.com/api/webhooks/1350865378275754084/2zmhPDKsvH_NsvvBQbJ7MzVTHqlHBRejW-ujKIhdeTHlFGiWIYq6pgNtVT_8nEjMm9WG"; // Replace with your Discord webhook URL
 let notifiedProposals = new Set(); // Track which proposals have already sent notifications
 let notifiedNewProposals = new Set(); // Track new proposal notifications
 
