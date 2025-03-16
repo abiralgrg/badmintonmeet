@@ -1,6 +1,6 @@
 // Firebase Config (replace with your actual config from Firebase Console)
 const firebaseConfig = {
-  apiKey: ${{ secrets.firebaseAPI }}
+  apiKey: "AIzaSyBETUme1XqagHowwggApN53A2aINQcAiM8",
   authDomain: "badminton-meet.firebaseapp.com",
   projectId: "badminton-meet",
   storageBucket: "badminton-meet.firebasestorage.app",
