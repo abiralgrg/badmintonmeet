@@ -102,15 +102,19 @@ document.addEventListener('DOMContentLoaded', function() {
           const proposal = doc.data();
           const acceptedBy = Array.isArray(proposal.acceptedBy) ? proposal.acceptedBy : [];
           const acceptedCount = acceptedBy.length;
+          const isProposer = proposal.proposedBy === currentUser;
           
           const div = document.createElement('div');
           div.className = 'proposal';
           div.innerHTML = `
             <p>${proposal.date} at ${proposal.time} (by ${proposal.proposedBy})</p>
             <p>Accepted: ${acceptedBy.join(', ')} (${acceptedCount}/4)</p>
-            <button onclick="toggleAcceptance('${doc.id}', ${acceptedBy.includes(currentUser)})">
-              ${acceptedBy.includes(currentUser) ? 'Leave' : 'Join'}
-            </button>
+            <div class="proposal-actions">
+              <button onclick="toggleAcceptance('${doc.id}', ${acceptedBy.includes(currentUser)})">
+                ${acceptedBy.includes(currentUser) ? 'Leave' : 'Join'}
+              </button>
+              ${isProposer ? `<button class="delete-button" onclick="deleteProposal('${doc.id}')">Delete</button>` : ''}
+            </div>
           `;
           proposalsList.appendChild(div);
         });
@@ -137,6 +141,31 @@ document.addEventListener('DOMContentLoaded', function() {
       }
       calendar.refetchEvents();
     }).catch(error => console.error("Toggle error:", error));
+  };
+
+  // Delete Proposal - New function
+  window.deleteProposal = function(proposalId) {
+    if (!currentUser) return;
+    
+    const proposalRef = db.collection('proposals').doc(proposalId);
+    proposalRef.get().then(doc => {
+      if (!doc.exists) return;
+      
+      const data = doc.data();
+      // Only allow deletion if current user is the proposer
+      if (data.proposedBy === currentUser) {
+        proposalRef.delete().then(() => {
+          console.log("Proposal successfully deleted!");
+          calendar.refetchEvents();
+        }).catch(error => {
+          console.error("Error deleting proposal:", error);
+        });
+      } else {
+        console.error("You don't have permission to delete this proposal");
+      }
+    }).catch(error => {
+      console.error("Error checking proposal:", error);
+    });
   };
 
   // Load All Events
