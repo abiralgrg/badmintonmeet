@@ -14,10 +14,11 @@ const WEBHOOK_URL = "https://discord.com/api/webhooks/1350865378275754084/2zmhPD
 let notifiedProposals = new Set();
 let notifiedNewProposals = new Set();
 let isMobileView = false;
+let db = null;
 
 document.addEventListener('DOMContentLoaded', function() {
   firebase.initializeApp(firebaseConfig);
-  const db = firebase.firestore();
+  db = firebase.firestore();
 
   checkScreenSize();
   window.addEventListener('resize', checkScreenSize);
@@ -29,13 +30,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function updateLayoutForScreenSize() {
     if (isMobileView) {
-
+      // Mobile layout: Hide calendar and chat sections
       document.querySelector('.main').style.display = 'none';
       document.querySelector('.sidebar').style.width = '100%';
       document.querySelector('.sidebar').style.minWidth = '100%';
       document.querySelector('.container').style.flexDirection = 'column';
       
-
+      // Add mobile title at the top
       const sidebarTitle = document.createElement('h1');
       sidebarTitle.textContent = 'Badminton Meet';
       sidebarTitle.classList.add('mobile-title');
@@ -45,21 +46,46 @@ document.addEventListener('DOMContentLoaded', function() {
         sidebar.insertBefore(sidebarTitle, sidebar.firstChild);
       }
     } else {
-
+      // Desktop layout: Show all sections
       document.querySelector('.main').style.display = 'flex';
       document.querySelector('.sidebar').style.width = '300px';
       document.querySelector('.sidebar').style.minWidth = '200px';
       document.querySelector('.container').style.flexDirection = 'row';
       
-
+      // Remove mobile title if it exists
       const mobileTitle = document.querySelector('.mobile-title');
       if (mobileTitle) {
         mobileTitle.remove();
       }
       
-
+      // Initialize calendar for desktop
       initializeCalendar();
     }
+  }
+
+  // Define loadAllEvents function first
+  function loadAllEvents(info, successCallback) {
+    db.collection('proposals').get().then(snapshot => {
+      const events = [];
+      snapshot.forEach(doc => {
+        const proposal = doc.data();
+        const dateTime = new Date(`${proposal.date}T${proposal.time}`);
+        const acceptedBy = Array.isArray(proposal.acceptedBy) ? proposal.acceptedBy : [];
+        
+        events.push({
+          title: 'Badminton Meet',
+          start: dateTime,
+          extendedProps: {
+            status: acceptedBy.length >= 4 ? 'confirmed' : 'proposed',
+            participants: acceptedBy
+          }
+        });
+      });
+      successCallback(events);
+    }).catch(error => {
+      console.error("Error loading events:", error);
+      successCallback([]);
+    });
   }
 
   function initializeCalendar() {
@@ -68,7 +94,7 @@ document.addEventListener('DOMContentLoaded', function() {
       if (calendarEl) {
         calendar = new FullCalendar.Calendar(calendarEl, {
           initialView: 'dayGridMonth',
-          events: loadAllEvents,
+          events: loadAllEvents, // This should now be defined
           headerToolbar: {
             left: 'title',
             center: '',
@@ -101,30 +127,6 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     }
   }
-
-  window.loadAllEvents = function(info, successCallback) {
-    db.collection('proposals').get().then(snapshot => {
-      const events = [];
-      snapshot.forEach(doc => {
-        const proposal = doc.data();
-        const dateTime = new Date(`${proposal.date}T${proposal.time}`);
-        const acceptedBy = Array.isArray(proposal.acceptedBy) ? proposal.acceptedBy : [];
-        
-        events.push({
-          title: 'Badminton Meet',
-          start: dateTime,
-          extendedProps: {
-            status: acceptedBy.length >= 4 ? 'confirmed' : 'proposed',
-            participants: acceptedBy
-          }
-        });
-      });
-      successCallback(events);
-    }).catch(error => {
-      console.error("Error loading events:", error);
-      successCallback([]);
-    });
-  };
 
   function formatTime(dateObj) {
     if (!dateObj) return '';
@@ -401,6 +403,7 @@ document.addEventListener('DOMContentLoaded', function() {
     .catch(error => console.error("Error sending Discord notification:", error));
   }
 
+  // Initialize the app
   if (!isMobileView) {
     initializeCalendar();
   }
