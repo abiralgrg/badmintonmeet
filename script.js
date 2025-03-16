@@ -321,7 +321,7 @@ document.addEventListener('DOMContentLoaded', function() {
           }
         ],
         footer: {
-          text: "Join the meetup in the Badminton Meet app!"
+          text: "Join the meetup in the website!"
         }
       }]
     };
