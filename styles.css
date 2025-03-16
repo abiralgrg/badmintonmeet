@@ -97,39 +97,41 @@ input {
     border-radius: 3px;
 }
 
-/* Event styling */
-.event-content {
+/* Event text styling */
+.event-container {
     width: 100%;
-    padding: 2px;
+    padding: 2px 0;
 }
 
-.event-title {
-    font-size: 11px;
-    text-align: center;
-    padding: 2px 4px;
+.event-text {
+    font-size: 14px;
+    font-weight: bold;
+    padding: 4px 6px;
     border-radius: 3px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    text-align: center;
 }
 
-.confirmed-event {
-    background-color: rgba(46, 125, 50, 0.1);
-    color: #2e7d32;
-    border-left: 3px solid #2e7d32;
+.event-text.proposed {
+    background-color: rgba(25, 118, 210, 0.15);
+    color: #1976d2; /* Blue */
+    border: 1px solid #1976d2;
 }
 
-.proposed-event {
-    background-color: rgba(33, 150, 243, 0.1);
-    color: #2196f3;
-    border-left: 3px solid #2196f3;
+.event-text.confirmed {
+    background-color: rgba(46, 125, 50, 0.15);
+    color: #2e7d32; /* Green */
+    border: 1px solid #2e7d32;
 }
 
-/* Remove bar styling */
+/* Make calendar events more visible */
 .fc-daygrid-event {
+    margin-top: 2px !important;
+    margin-bottom: 2px !important;
     background: none !important;
     border: none !important;
-    margin: 1px 0;
 }
 
 /* Ensure harness doesn't interfere */
@@ -162,8 +164,9 @@ input {
         height: 500px;
         max-width: 100%;
     }
-    .event-title {
-        font-size: 9px;
+    .event-text {
+        font-size: 12px;
+        padding: 2px 4px;
     }
 }
 
