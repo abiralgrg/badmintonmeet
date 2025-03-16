@@ -20,11 +20,57 @@ body {
 .main {
     flex-grow: 1;
     padding: 20px;
+    display: flex;
+    flex-direction: column;
+}
+
+#calendar-container, #chat-container {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+#month-year-display {
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 10px;
+    text-align: center;
 }
 
 #calendar {
-    max-width: 900px;
-    margin: 0 auto;
+    flex-grow: 1;
+    margin-top: 10px;
+}
+
+.view-toggle {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.view-toggle button {
+    padding: 8px 16px;
+    margin: 0 5px;
+    cursor: pointer;
+    background-color: #f4f4f4;
+    color: #333;
+    border: 1px solid #ddd;
+    border-radius: 20px;
+    transition: all 0.3s ease;
+}
+
+.view-toggle button.active {
+    background-color: #4caf50;
+    color: white;
+    border-color: #4caf50;
+}
+
+.view-toggle button:hover {
+    background-color: #e0e0e0;
+}
+
+.view-toggle button.active:hover {
+    background-color: #45a049;
 }
 
 .proposal {
@@ -84,7 +130,7 @@ input {
     align-items: center;
 }
 
-/* Ensure harness doesn’t interfere */
+/* Ensure harness doesn't interfere */
 .fc-daygrid-event-harness {
     width: 100%;
     margin: 0;
@@ -93,6 +139,12 @@ input {
 /* Hover effect */
 .fc-daygrid-day:hover {
     background-color: #f5f5f5;
+}
+
+/* Make calendar fill available space */
+.fc {
+    height: 100% !important;
+    width: 100% !important;
 }
 
 /* Responsive adjustments */
@@ -104,7 +156,7 @@ input {
         width: 100%;
         padding: 10px;
     }
-    #calendar {
+    #calendar, #chat-container {
         max-width: 100%;
     }
 }
