@@ -25,7 +25,22 @@
         </div>
         <div class="main">
             <h1>Badminton Meet</h1>
-            <div id="calendar"></div>
+            <div class="view-toggle">
+                <button id="calendar-toggle" class="active" onclick="toggleView('calendar')">Calendar</button>
+                <button id="chat-toggle" onclick="toggleView('chat')">Chat</button>
+            </div>
+            <div id="calendar-container" class="view-container">
+                <div id="month-year-display"></div>
+                <div id="calendar"></div>
+            </div>
+            <div id="chat-container" class="view-container" style="display: none;">
+                <widgetbot
+                    server="1321611322839793725"
+                    channel="1350810796510416896"
+                    width="100%"
+                    height="600"
+                ></widgetbot>
+            </div>
         </div>
     </div>
 
@@ -33,6 +48,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@widgetbot/html-embed"></script>
     <script src="script.js"></script>
 </body>
 </html>
