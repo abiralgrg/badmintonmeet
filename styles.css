@@ -97,30 +97,39 @@ input {
     border-radius: 3px;
 }
 
-/* Symbol styling */
-.event-symbol {
-    font-size: 24px;
-    font-weight: bold;
-    color: #666; /* Default for proposed */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100%;
+/* Event styling */
+.event-content {
     width: 100%;
+    padding: 2px;
 }
 
-.fc-daygrid-event[title*="Confirmed"] .event-symbol {
-    color: #2e7d32; /* Green for confirmed */
+.event-title {
+    font-size: 11px;
+    text-align: center;
+    padding: 2px 4px;
+    border-radius: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.confirmed-event {
+    background-color: rgba(46, 125, 50, 0.1);
+    color: #2e7d32;
+    border-left: 3px solid #2e7d32;
+}
+
+.proposed-event {
+    background-color: rgba(33, 150, 243, 0.1);
+    color: #2196f3;
+    border-left: 3px solid #2196f3;
 }
 
 /* Remove bar styling */
 .fc-daygrid-event {
     background: none !important;
     border: none !important;
-    min-height: 26px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    margin: 1px 0;
 }
 
 /* Ensure harness doesn't interfere */
@@ -152,6 +161,9 @@ input {
     #calendar-container, #chat-container {
         height: 500px;
         max-width: 100%;
+    }
+    .event-title {
+        font-size: 9px;
     }
 }
 
