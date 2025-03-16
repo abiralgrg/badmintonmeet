@@ -97,7 +97,16 @@ document.addEventListener('DOMContentLoaded', function() {
       acceptedBy: [currentUser],
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
       notified: false // Track if Discord notification was sent
-    }).then(() => {
+    }).then((docRef) => {
+      const proposalId = docRef.id;
+      // Send Discord notification for new proposal
+      sendProposalNotification({
+        date: date,
+        time: time,
+        proposedBy: currentUser,
+        acceptedBy: [currentUser]
+      }, proposalId);
+      
       loadProposals();
       document.getElementById('propose-date').value = '';
       document.getElementById('propose-time').value = '';
@@ -123,7 +132,7 @@ document.addEventListener('DOMContentLoaded', function() {
           
           // Check if this is newly confirmed and needs notification
           if (isConfirmed && !proposal.notified && !notifiedProposals.has(proposalId)) {
-            sendDiscordNotification(proposal, proposalId);
+            sendConfirmationNotification(proposal, proposalId);
             notifiedProposals.add(proposalId);
           }
           
@@ -168,7 +177,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (updatedAcceptedBy.length >= 4 && !proposal.notified) {
           proposalRef.get().then(updatedDoc => {
             const updatedProposal = updatedDoc.data();
-            sendDiscordNotification(updatedProposal, proposalId);
+            sendConfirmationNotification(updatedProposal, proposalId);
           });
         }
         calendar.refetchEvents();
@@ -176,8 +185,65 @@ document.addEventListener('DOMContentLoaded', function() {
     }).catch(error => console.error("Toggle error:", error));
   };
 
-  // Send Discord Notification
-  function sendDiscordNotification(proposal, proposalId) {
+  // Send Discord Notification for a new proposal
+  function sendProposalNotification(proposal, proposalId) {
+    // Format date and time for better readability
+    const formattedDate = formatDate(proposal.date);
+    const timeStr = proposal.time;
+    
+    // Create rich embed for Discord webhook
+    const webhookData = {
+      content: "A new badminton meet proposal has been made!",
+      embeds: [{
+        title: "Badminton Meet Proposal",
+        color: 3447003, // Blue color
+        fields: [
+          {
+            name: "Date",
+            value: formattedDate,
+            inline: true
+          },
+          {
+            name: "Time",
+            value: timeStr,
+            inline: true
+          },
+          {
+            name: "Proposed By",
+            value: proposal.proposedBy,
+            inline: true
+          },
+          {
+            name: "Participants",
+            value: proposal.acceptedBy.join(", ") + ` (${proposal.acceptedBy.length}/4)`,
+            inline: false
+          }
+        ],
+        footer: {
+          text: "Join the meet on the website!"
+        }
+      }]
+    };
+    
+    // Send the notification to Discord webhook
+    fetch(WEBHOOK_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(webhookData)
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`Discord webhook error: ${response.status}`);
+      }
+      console.log("Discord proposal notification sent successfully!");
+    })
+    .catch(error => console.error("Error sending Discord notification:", error));
+  }
+
+  // Send Discord Notification for confirmed meetup
+  function sendConfirmationNotification(proposal, proposalId) {
     // Mark as notified in Firebase first
     const proposalRef = db.collection('proposals').doc(proposalId);
     proposalRef.update({ notified: true });
@@ -232,7 +298,7 @@ document.addEventListener('DOMContentLoaded', function() {
       if (!response.ok) {
         throw new Error(`Discord webhook error: ${response.status}`);
       }
-      console.log("Discord notification sent successfully!");
+      console.log("Discord confirmation notification sent successfully!");
     })
     .catch(error => console.error("Error sending Discord notification:", error));
   }
