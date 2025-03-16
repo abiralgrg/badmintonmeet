@@ -31,95 +31,122 @@ document.addEventListener('DOMContentLoaded', function() {
     const container = document.querySelector('.container');
     const sidebar = document.querySelector('.sidebar');
     const main = document.querySelector('.main');
-    const calendarContainer = document.getElementById('calendar-container');
-    const viewToggleButtons = document.querySelector('.view-toggle');
     
     if (isMobileView) {
-
+      // Mobile layout - show only sidebar with login and proposals
       container.classList.add('mobile-layout');
       sidebar.classList.add('mobile-sidebar');
-      main.classList.add('mobile-main');
       
-
-      if (calendarContainer) {
-        calendarContainer.style.display = 'none';
-      }
-      if (viewToggleButtons) {
-        viewToggleButtons.style.display = 'none';
+      if (main) {
+        main.style.display = 'none'; // Hide the main content area completely
       }
       
-
-      const proposeSection = document.getElementById('propose-section');
-      if (proposeSection && sidebar) {
-        sidebar.insertBefore(proposeSection, sidebar.firstChild);
+      // Make sidebar take full width
+      sidebar.style.width = '100%';
+      sidebar.style.maxWidth = '100%';
+      
+      // Update sidebar title for mobile
+      const sidebarTitle = sidebar.querySelector('h2');
+      if (sidebarTitle) {
+        sidebarTitle.textContent = 'Badminton Meet';
       }
     } else {
-
+      // Desktop layout - show everything
       container.classList.remove('mobile-layout');
       sidebar.classList.remove('mobile-sidebar');
-      main.classList.remove('mobile-main');
       
-
-      if (calendarContainer) {
-        calendarContainer.style.display = 'flex';
-      }
-      if (viewToggleButtons) {
-        viewToggleButtons.style.display = 'flex';
+      if (main) {
+        main.style.display = 'flex';
       }
       
-
-      const proposeSection = document.getElementById('propose-section');
-      const loginSection = document.getElementById('login-section');
-      if (proposeSection && loginSection && sidebar) {
-        sidebar.insertBefore(proposeSection, sidebar.children[1]);
+      // Reset sidebar width
+      sidebar.style.width = '300px';
+      sidebar.style.maxWidth = '300px';
+      
+      // Reset sidebar title
+      const sidebarTitle = sidebar.querySelector('h2');
+      if (sidebarTitle) {
+        sidebarTitle.textContent = 'Proposals';
       }
-    }
-    
-
-    if (calendar) {
-      calendar.updateSize();
+      
+      // Initialize calendar if in desktop view
+      initializeCalendar();
     }
   }
 
+  function initializeCalendar() {
+    if (!isMobileView && !calendar) {
+      const calendarEl = document.getElementById('calendar');
+      if (calendarEl) {
+        calendar = new FullCalendar.Calendar(calendarEl, {
+          initialView: 'dayGridMonth',
+          events: loadAllEvents,
+          headerToolbar: {
+            left: 'title',
+            center: '',
+            right: 'prev,next'
+          },
+          eventContent: function(arg) {
+            const eventContainer = document.createElement('div');
+            eventContainer.classList.add('event-container');
+            
+            const timeText = formatTime(arg.event.start);
+            
+            if (arg.event.extendedProps.status === 'confirmed') {
+              eventContainer.innerHTML = `<div class="event-text confirmed">Badminton Meet @ ${timeText}</div>`;
+            } else {
+              eventContainer.innerHTML = `<div class="event-text proposed">Proposed: ${timeText}</div>`;
+            }
+            
+            return { domNodes: [eventContainer] };
+          },
+          eventDidMount: function(info) {
+            const participantsText = info.event.extendedProps.participants.join(', ');
+            const count = info.event.extendedProps.participants.length;
+            const status = info.event.extendedProps.status === 'confirmed' ? 'Confirmed' : 'Proposed';
+            info.el.title = `${status} Badminton (${count}/4)\nParticipants: ${participantsText}`;
+          },
+          height: '100%',
+          displayEventTime: false
+        });
+        calendar.render();
+      }
+    }
+  }
 
+  // Initialize calendar for desktop view
   if (!isMobileView) {
-    const calendarEl = document.getElementById('calendar');
-    if (calendarEl) {
-      calendar = new FullCalendar.Calendar(calendarEl, {
-        initialView: 'dayGridMonth',
-        events: loadAllEvents,
-        headerToolbar: {
-          left: 'title',
-          center: '',
-          right: 'prev,next'
-        },
-        eventContent: function(arg) {
-          const eventContainer = document.createElement('div');
-          eventContainer.classList.add('event-container');
-          
-          const timeText = formatTime(arg.event.start);
-          
-          if (arg.event.extendedProps.status === 'confirmed') {
-            eventContainer.innerHTML = `<div class="event-text confirmed">Badminton Meet @ ${timeText}</div>`;
-          } else {
-            eventContainer.innerHTML = `<div class="event-text proposed">Proposed: ${timeText}</div>`;
-          }
-          
-          return { domNodes: [eventContainer] };
-        },
-        eventDidMount: function(info) {
-          const participantsText = info.event.extendedProps.participants.join(', ');
-          const count = info.event.extendedProps.participants.length;
-          const status = info.event.extendedProps.status === 'confirmed' ? 'Confirmed' : 'Proposed';
-          info.el.title = `${status} Badminton (${count}/4)\nParticipants: ${participantsText}`;
-        },
-        height: '100%',
-        displayEventTime: false
-      });
-      calendar.render();
-    }
+    initializeCalendar();
   }
-  
+
+  function loadAllEvents(info, successCallback, failureCallback) {
+    db.collection('proposals').get().then(snapshot => {
+      const events = [];
+      snapshot.forEach(doc => {
+        const proposal = doc.data();
+        const acceptedBy = Array.isArray(proposal.acceptedBy) ? proposal.acceptedBy : [];
+        
+        if (proposal.date && proposal.time) {
+          const dateTime = new Date(`${proposal.date}T${proposal.time}`);
+          
+          events.push({
+            id: doc.id,
+            title: 'Badminton Meet',
+            start: dateTime,
+            extendedProps: {
+              proposedBy: proposal.proposedBy,
+              participants: acceptedBy,
+              status: acceptedBy.length >= 4 ? 'confirmed' : 'proposed'
+            }
+          });
+        }
+      });
+      successCallback(events);
+    }).catch(error => {
+      console.error("Error loading events:", error);
+      failureCallback(error);
+    });
+  }
 
   function formatTime(dateObj) {
     if (!dateObj) return '';
@@ -130,14 +157,12 @@ document.addEventListener('DOMContentLoaded', function() {
     hours = hours ? hours : 12; 
     return `${hours}:${minutes} ${ampm}`;
   }
-  
 
   function formatDate(dateStr) {
     const date = new Date(dateStr);
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     return date.toLocaleDateString(undefined, options);
   }
-  
 
   window.login = function() {
     const name = document.getElementById('user-name').value.trim();
@@ -151,13 +176,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   };
 
-
   window.proposeMeetup = function() {
     const date = document.getElementById('propose-date').value;
     const time = document.getElementById('propose-time').value;
     if (!date || !time || !currentUser) return;
     
-
     db.collection('proposals').add({
       date: date,
       time: time,
@@ -176,27 +199,23 @@ document.addEventListener('DOMContentLoaded', function() {
         id: proposalId
       };
       
-
       if (!notifiedNewProposals.has(proposalId)) {
         sendProposalNotification(proposalData);
         notifiedNewProposals.add(proposalId);
         
-
         db.collection('proposals').doc(proposalId).update({
           proposalNotified: true
         });
       }
       
-
       loadProposals();
       document.getElementById('propose-date').value = '';
       document.getElementById('propose-time').value = '';
-      if (calendar) {
+      if (calendar && !isMobileView) {
         calendar.refetchEvents();
       }
     }).catch(error => console.error("Propose error:", error));
   };
-
 
   function loadProposals() {
     const proposalsList = document.getElementById('proposals-list');
@@ -213,13 +232,11 @@ document.addEventListener('DOMContentLoaded', function() {
           const isProposer = proposal.proposedBy === currentUser;
           const isConfirmed = acceptedCount >= 4;
           
-
           if (isConfirmed && !proposal.notified && !notifiedProposals.has(proposalId)) {
             sendConfirmationNotification(proposal, proposalId);
             notifiedProposals.add(proposalId);
           }
           
-
           const dateObj = new Date(proposal.date);
           const formattedDate = dateObj.toLocaleDateString(undefined, {
             weekday: 'short',
@@ -246,12 +263,11 @@ document.addEventListener('DOMContentLoaded', function() {
           `;
           proposalsList.appendChild(div);
         });
-        if (calendar) {
+        if (calendar && !isMobileView) {
           calendar.refetchEvents();
         }
       }, error => console.error("Error loading proposals:", error));
   }
-
 
   window.toggleAcceptance = function(proposalId, isAccepted) {
     const proposalRef = db.collection('proposals').doc(proposalId);
@@ -271,7 +287,6 @@ document.addEventListener('DOMContentLoaded', function() {
       proposalRef.update({
         acceptedBy: updatedAcceptedBy
       }).then(() => {
-
         if (updatedAcceptedBy.length >= 4 && !proposal.notified && !notifiedProposals.has(proposalId)) {
           proposalRef.get().then(updatedDoc => {
             const updatedProposal = updatedDoc.data();
@@ -279,20 +294,30 @@ document.addEventListener('DOMContentLoaded', function() {
             notifiedProposals.add(proposalId);
           });
         }
-        if (calendar) {
+        if (calendar && !isMobileView) {
           calendar.refetchEvents();
         }
       });
     }).catch(error => console.error("Toggle error:", error));
   };
 
+  window.deleteProposal = function(proposalId) {
+    if (confirm('Are you sure you want to delete this proposal?')) {
+      db.collection('proposals').doc(proposalId).delete()
+        .then(() => {
+          console.log("Proposal deleted successfully");
+          if (calendar && !isMobileView) {
+            calendar.refetchEvents();
+          }
+        })
+        .catch(error => console.error("Error deleting proposal:", error));
+    }
+  };
 
   function sendProposalNotification(proposal) {
-
     const formattedDate = formatDate(proposal.date);
     const timeStr = proposal.time;
     
-
     const webhookData = {
       content: "New badminton meet proposal!",
       embeds: [{
@@ -326,7 +351,6 @@ document.addEventListener('DOMContentLoaded', function() {
       }]
     };
     
-
     fetch(WEBHOOK_URL, {
       method: "POST",
       headers: {
@@ -343,17 +367,13 @@ document.addEventListener('DOMContentLoaded', function() {
     .catch(error => console.error("Error sending Discord notification:", error));
   }
 
-
   function sendConfirmationNotification(proposal, proposalId) {
-
     const proposalRef = db.collection('proposals').doc(proposalId);
     proposalRef.update({ notified: true });
     
-
     const formattedDate = formatDate(proposal.date);
     const timeStr = proposal.time;
     
-
     const webhookData = {
       content: "@everyone A badminton meet has been confirmed! :badminton:",
       embeds: [{
@@ -386,7 +406,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       }]
     };
-    
 
     fetch(WEBHOOK_URL, {
       method: "POST",
