@@ -12,7 +12,7 @@ const firebaseConfig = {
 // Global Variables
 let currentUser = null;
 let calendar = null;
-const WEBHOOK_URL = "YOUR_DISCORD_WEBHOOK_URL"; // Replace with your Discord webhook URL
+const WEBHOOK_URL = "https://discord.com/api/webhooks/1350865378275754084/2zmhPDKsvH_NsvvBQbJ7MzVTHqlHBRejW-ujKIhdeTHlFGiWIYq6pgNtVT_8nEjMm9WG"; // Replace with your Discord webhook URL
 let notifiedProposals = new Set(); // Track which proposals have already sent notifications
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -190,7 +190,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const webhookData = {
       content: "@everyone A badminton meet has been confirmed! :badminton:",
       embeds: [{
-        title: "Badminton Meetup Confirmed!",
+        title: "Badminton Meet Confirmed!",
         color: 5025616, // Green color
         fields: [
           {
