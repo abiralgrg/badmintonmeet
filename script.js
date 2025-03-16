@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded', function() {
       const participantsText = info.event.extendedProps.participants.join(', ');
       const count = info.event.extendedProps.participants.length;
       const status = info.event.extendedProps.status === 'confirmed' ? 'Confirmed' : 'Proposed';
-      info.el.title = ${status} Badminton (${count}/4)\nParticipants: ${participantsText};
+      info.el.title = `${status} Badminton (${count}/4)\nParticipants: ${participantsText}`;
     },
     height: 'auto',
     displayEventTime: false
@@ -85,13 +85,13 @@ document.addEventListener('DOMContentLoaded', function() {
           
           const div = document.createElement('div');
           div.className = 'proposal';
-          div.innerHTML = 
+          div.innerHTML = `
             <p>${proposal.date} at ${proposal.time} (by ${proposal.proposedBy})</p>
             <p>Accepted: ${acceptedBy.join(', ')} (${acceptedCount}/4)</p>
             <button onclick="toggleAcceptance('${doc.id}', ${acceptedBy.includes(currentUser)})">
               ${acceptedBy.includes(currentUser) ? 'Leave' : 'Join'}
             </button>
-          ;
+          `;
           proposalsList.appendChild(div);
         });
         calendar.refetchEvents();
@@ -132,7 +132,7 @@ document.addEventListener('DOMContentLoaded', function() {
           
           events.push({
             title: '', // Empty title
-            start: ${data.date}T${data.time},
+            start: `${data.date}T${data.time}`,
             allDay: false,
             extendedProps: {
               status: isConfirmed ? 'confirmed' : 'proposed',
