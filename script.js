@@ -205,7 +205,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Create rich embed for Discord webhook
     const webhookData = {
-      content: "@everyone A badminton meetup has been confirmed! :badminton:",
+      content: "@everyone A badminton meet has been confirmed! :badminton:",
       embeds: [{
         title: "Badminton Meetup Confirmed!",
         color: 5025616, // Green color
@@ -232,7 +232,7 @@ document.addEventListener('DOMContentLoaded', function() {
           }
         ],
         footer: {
-          text: "See you on the court! 🏸"
+          text: "See you on the court!"
         }
       }]
     };
@@ -271,7 +271,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Create rich embed for Discord webhook (without @everyone)
     const webhookData = {
-      content: "A new badminton meetup has been proposed! 🏸",
+      content: "A new badminton meet has been proposed! 🏸",
       embeds: [{
         title: "New Badminton Meetup Proposal",
         color: 3447003, // Blue color
@@ -365,7 +365,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Create rich embed for Discord webhook
     const webhookData = {
-      content: "A badminton meetup proposal has been canceled.",
+      content: "A badminton meet has been canceled.",
       embeds: [{
         title: "Badminton Meetup Canceled",
         color: 15548997, // Light red color
@@ -392,7 +392,7 @@ document.addEventListener('DOMContentLoaded', function() {
           }
         ],
         footer: {
-          text: "This meetup has been removed from the schedule."
+          text: "This meet has been removed from the schedule."
         }
       }]
     };
