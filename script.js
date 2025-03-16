@@ -11,6 +11,7 @@ const firebaseConfig = {
 
 // Global Variables
 let currentUser = null;
+let calendar = null;
 
 document.addEventListener('DOMContentLoaded', function() {
   firebase.initializeApp(firebaseConfig);
@@ -18,7 +19,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Calendar Setup with bold centered symbols
   const calendarEl = document.getElementById('calendar');
-  const calendar = new FullCalendar.Calendar(calendarEl, {
+  calendar = new FullCalendar.Calendar(calendarEl, {
     initialView: 'dayGridMonth',
     events: loadAllEvents,
     eventContent: function(arg) {
@@ -33,11 +34,17 @@ document.addEventListener('DOMContentLoaded', function() {
       const status = info.event.extendedProps.status === 'confirmed' ? 'Confirmed' : 'Proposed';
       info.el.title = `${status} Badminton (${count}/4)\nParticipants: ${participantsText}`;
     },
-    height: 'auto',
+    height: '100%',
+    datesSet: function(info) {
+      updateMonthYearTitle(info.view.title);
+    },
     displayEventTime: false
   });
   calendar.render();
 
+  // Initialize widget bot
+  window.widgetbot = new WidgetBot("1321611322839793725", "1350810796510416896");
+  
   // Login
   window.login = function() {
     const name = document.getElementById('user-name').value.trim();
@@ -148,3 +155,32 @@ document.addEventListener('DOMContentLoaded', function() {
       });
   }
 });
+
+// Function to update the month/year title
+function updateMonthYearTitle(title) {
+  const monthYearDisplay = document.getElementById('month-year-display');
+  monthYearDisplay.textContent = title;
+}
+
+// Toggle between calendar and chat views
+window.toggleView = function(viewName) {
+  const calendarContainer = document.getElementById('calendar-container');
+  const chatContainer = document.getElementById('chat-container');
+  const calendarToggle = document.getElementById('calendar-toggle');
+  const chatToggle = document.getElementById('chat-toggle');
+  
+  if (viewName === 'calendar') {
+    calendarContainer.style.display = 'flex';
+    chatContainer.style.display = 'none';
+    calendarToggle.classList.add('active');
+    chatToggle.classList.remove('active');
+    if (calendar) {
+      calendar.updateSize();
+    }
+  } else {
+    calendarContainer.style.display = 'none';
+    chatContainer.style.display = 'flex';
+    calendarToggle.classList.remove('active');
+    chatToggle.classList.add('active');
+  }
+};
