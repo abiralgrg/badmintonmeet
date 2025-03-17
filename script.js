@@ -1,7 +1,3 @@
-the 'bookings' section of my website is currently defunct as the external websites i wouldve liked to embed do not allow embedding, instead can it be a nicely designed (possibly even animated) running list of proposed dates, users are shown them with their relevant information as well as if they are booked or not, non booked proposals/acceptals have buttons on them that transport them to either of the external websites to book, there is also a button to mark a proposal/meet as booked/unbooked. also update the proposals section to display whether a proposal/meet is booked or not (dont edit it too much as it already looks nice).
-
-lets start by you finishing this script from as you were interrupted at // create filters
-
 const firebaseConfig = {
   apiKey: "AIzaSyBETUme1XqagHowwggApN53A2aINQcAiM8",
   authDomain: "badminton-meet.firebaseapp.com",
