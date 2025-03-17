@@ -405,24 +405,116 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 });
 
+// Function to change booking sites
+window.changeBookingSite = function(venue) {
+  const bookingFrame = document.getElementById('booking-frame');
+  const venueButtons = document.querySelectorAll('.venue-button');
+  
+  // Update active button
+  venueButtons.forEach(button => {
+    button.classList.remove('active');
+  });
+  event.target.classList.add('active');
+  
+  // Change iframe source
+if (venue === 'qmc') {
+    bookingFrame.src = 'https://bookings.qmc.ac.uk/Book/Book.aspx?group=1&site=1';
+  } else if (venue === 'everest') {
+    bookingFrame.src = 'https://www.lifestylefitness.co.uk/club/basingstoke#sports-bookings';
+  }
+};
+
+// Updated toggleView function to handle booking tab
 window.toggleView = function(view) {
   const calendarContainer = document.getElementById('calendar-container');
   const chatContainer = document.getElementById('chat-container');
+  const bookingContainer = document.getElementById('booking-container');
   const calendarToggle = document.getElementById('calendar-toggle');
   const chatToggle = document.getElementById('chat-toggle');
+  const bookingToggle = document.getElementById('booking-toggle');
   
+  // Hide all containers first
+  calendarContainer.style.display = 'none';
+  chatContainer.style.display = 'none';
+  if (bookingContainer) bookingContainer.style.display = 'none';
+  
+  // Remove active class from all toggles
+  calendarToggle.classList.remove('active');
+  chatToggle.classList.remove('active');
+  if (bookingToggle) bookingToggle.classList.remove('active');
+  
+  // Show the selected container and activate the toggle
   if (view === 'calendar') {
     calendarContainer.style.display = 'flex';
-    chatContainer.style.display = 'none';
     calendarToggle.classList.add('active');
-    chatToggle.classList.remove('active');
     if (calendar) {
       calendar.updateSize();
     }
   } else if (view === 'chat') {
-    calendarContainer.style.display = 'none';
     chatContainer.style.display = 'flex';
-    calendarToggle.classList.remove('active');
     chatToggle.classList.add('active');
+  } else if (view === 'booking' && bookingContainer) {
+    bookingContainer.style.display = 'flex';
+    bookingToggle.classList.add('active');
   }
 };
+
+// Add this to your existing DOMContentLoaded listener
+document.addEventListener('DOMContentLoaded', function() {
+  // ... Your existing code ...
+  
+  // Initialize booking tab
+  initializeBookingTab();
+  
+  // ... Your existing code ...
+  
+  // Function to initialize booking tab
+  function initializeBookingTab() {
+    const bookingContainer = document.getElementById('booking-container');
+    const bookingToggle = document.getElementById('booking-toggle');
+    
+    if (bookingContainer && !bookingContainer.hasAttribute('data-initialized')) {
+      // Mark as initialized to prevent duplicate initialization
+      bookingContainer.setAttribute('data-initialized', 'true');
+      
+      // Create venue selector if it doesn't exist
+      if (!document.querySelector('.venue-selector')) {
+        const venueSelector = document.createElement('div');
+        venueSelector.className = 'venue-selector';
+        venueSelector.innerHTML = `
+          <div class="venue-buttons">
+            <button onclick="changeBookingSite('qmc')" class="venue-button active">QMC (£16)</button>
+            <button onclick="changeBookingSite('everest')" class="venue-button">Everest (£12)</button>
+          </div>
+        `;
+        bookingContainer.insertBefore(venueSelector, bookingContainer.firstChild);
+      }
+      
+      // Add direct booking button from confirmed proposals
+      const loadProposalsOriginal = window.loadProposals || function(){};
+      window.loadProposals = function() {
+        loadProposalsOriginal();
+        
+        // Get confirmed proposals and add booking buttons
+        const confirmedProposals = document.querySelectorAll('.proposal.confirmed');
+        confirmedProposals.forEach(proposal => {
+          // Check if booking button already exists
+          if (!proposal.querySelector('.book-court-button')) {
+            const actionsDiv = proposal.querySelector('.proposal-actions');
+            if (actionsDiv) {
+              const bookButton = document.createElement('button');
+              bookButton.className = 'action-button book-court-button';
+              bookButton.textContent = 'Book Court';
+              bookButton.onclick = function() {
+                toggleView('booking');
+                // Optionally, you could set the date in the booking iframe
+                // if the booking sites support URL parameters for dates
+              };
+              actionsDiv.appendChild(bookButton);
+            }
+          }
+        });
+      };
+    }
+  }
+});
