@@ -260,6 +260,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 ${acceptedBy.includes(currentUser) ? 'Leave' : 'Join'}
               </button>
               ${isProposer ? `<button class="action-button delete-button" onclick="deleteProposal('${proposalId}')">Delete</button>` : ''}
+              ${isConfirmed && !isBooked ? `
+                <div class="venue-options">
+                  <button class="venue-link-button" onclick="openBookingURLAndMarkBooked('qmc', '${proposalId}')">QMC (£16)</button>
+                  <button class="venue-link-button" onclick="openBookingURLAndMarkBooked('everest', '${proposalId}')">Everest (£12)</button>
+                </div>
+              ` : ''}
+              ${isConfirmed && !isBooked ? `<button class="action-button book-court-button" onclick="toggleBooking('${proposalId}', false)">Mark as Booked</button>` : ''}
+              ${isBooked ? `<button class="action-button unbook-button" onclick="toggleBooking('${proposalId}', true)">Mark as Unbooked</button>` : ''}
             </div>
           `;
           proposalsList.appendChild(div);
@@ -359,10 +367,9 @@ document.addEventListener('DOMContentLoaded', function() {
               <button class="venue-link-button" onclick="openBookingURLAndMarkBooked('qmc', '${proposal.id}')">QMC (£16)</button>
               <button class="venue-link-button" onclick="openBookingURLAndMarkBooked('everest', '${proposal.id}')">Everest (£12)</button>
             </div>
-            <button class="action-button book-court-button" onclick="toggleBooking('${proposal.id}', false)">Mark as Booked</button>
-          ` : `
-            <button class="action-button unbook-button" onclick="toggleBooking('${proposal.id}', true)">Mark as Unbooked</button>
-          `}
+          ` : ''}
+          ${!isBooked ? `<button class="action-button book-court-button" onclick="toggleBooking('${proposal.id}', false)">Mark as Booked</button>` : ''}
+          ${isBooked ? `<button class="action-button unbook-button" onclick="toggleBooking('${proposal.id}', true)">Mark as Unbooked</button>` : ''}
         </div>
       `;
       
@@ -386,12 +393,40 @@ document.addEventListener('DOMContentLoaded', function() {
     toggleBooking(proposalId, false);
   };
   
+  window.showBookingOptions = function(proposalId) {
+    const bookingOptions = document.createElement('div');
+    bookingOptions.className = 'booking-options-dialog';
+    bookingOptions.innerHTML = `
+      <div class="booking-options-content">
+        <h3>Choose a Venue</h3>
+        <div class="venue-options">
+          <button onclick="openBookingURLAndMarkBooked('qmc', '${proposalId}')">QMC (£16)</button>
+          <button onclick="openBookingURLAndMarkBooked('everest', '${proposalId}')">Everest (£12)</button>
+        </div>
+        <div class="booking-options-actions">
+          <button onclick="toggleBooking('${proposalId}', false)">Mark as Booked</button>
+          <button onclick="closeBookingOptions()">Cancel</button>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(bookingOptions);
+  };
+  
+  window.closeBookingOptions = function() {
+    const dialog = document.querySelector('.booking-options-dialog');
+    if (dialog) {
+      dialog.remove();
+    }
+  };
+  
   window.toggleBooking = function(proposalId, isCurrentlyBooked) {
     const proposalRef = db.collection('proposals').doc(proposalId);
     
     proposalRef.update({
       isBooked: !isCurrentlyBooked
     }).then(() => {
+      closeBookingOptions();
       loadProposals();
       loadBookings();
       if (calendar && !isMobileView) {
