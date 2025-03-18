@@ -35,11 +35,11 @@ document.addEventListener('DOMContentLoaded', function() {
       document.querySelector('.sidebar').style.width = '100%';
       document.querySelector('.sidebar').style.minWidth = '100%';
       document.querySelector('.container').style.flexDirection = 'column';
-      
+
       const sidebarTitle = document.createElement('h1');
       sidebarTitle.textContent = 'Badminton Meet';
       sidebarTitle.classList.add('mobile-title');
-      
+
       const sidebar = document.querySelector('.sidebar');
       if (!document.querySelector('.mobile-title')) {
         sidebar.insertBefore(sidebarTitle, sidebar.firstChild);
@@ -49,12 +49,12 @@ document.addEventListener('DOMContentLoaded', function() {
       document.querySelector('.sidebar').style.width = '300px';
       document.querySelector('.sidebar').style.minWidth = '200px';
       document.querySelector('.container').style.flexDirection = 'row';
-      
+
       const mobileTitle = document.querySelector('.mobile-title');
       if (mobileTitle) {
         mobileTitle.remove();
       }
-      
+
       initializeCalendar();
     }
   }
@@ -64,10 +64,10 @@ document.addEventListener('DOMContentLoaded', function() {
       const events = [];
       snapshot.forEach(doc => {
         const proposal = doc.data();
-        const dateTime = new Date(`${proposal.date}T${proposal.time}`);
+        const dateTime = new Date(${proposal.date}T${proposal.time});
         const acceptedBy = Array.isArray(proposal.acceptedBy) ? proposal.acceptedBy : [];
         const isBooked = proposal.isBooked === true;
-        
+
         events.push({
           title: 'Badminton Meet',
           start: dateTime,
@@ -100,29 +100,29 @@ document.addEventListener('DOMContentLoaded', function() {
           eventContent: function(arg) {
             const eventContainer = document.createElement('div');
             eventContainer.classList.add('event-container');
-            
+
             const timeText = formatTime(arg.event.start);
-            
+
             if (arg.event.extendedProps.status === 'booked') {
               eventContainer.innerHTML = `
 
 Booked @ ${timeText}
 
-`;
+;
             } else if (arg.event.extendedProps.status === 'confirmed') {
-              eventContainer.innerHTML = `
+              eventContainer.innerHTML = 
 
 Confirmed @ ${timeText}
 
-`;
+;
             } else {
-              eventContainer.innerHTML = `
+              eventContainer.innerHTML = 
 
 Proposed @ ${timeText}
 
 `;
             }
-            
+
             return { domNodes: [eventContainer] };
           },
           eventDidMount: function(info) {
@@ -131,7 +131,7 @@ Proposed @ ${timeText}
             let status = info.event.extendedProps.status === 'booked' ? 'Booked' : 
                          (info.event.extendedProps.status === 'confirmed' ? 'Confirmed' : 'Proposed');
             const venue = info.event.extendedProps.venue || 'Not booked';
-            info.el.title = `${status} Badminton (${count}/4)\nParticipants: ${participantsText}\nVenue: ${venue}`;
+            info.el.title = ${status} Badminton (${count}/4)\nParticipants: ${participantsText}\nVenue: ${venue};
           },
           height: '100%',
           displayEventTime: false
@@ -148,7 +148,7 @@ Proposed @ ${timeText}
     const ampm = hours >= 12 ? 'PM' : 'AM';
     hours = hours % 12;
     hours = hours ? hours : 12; 
-    return `${hours}:${minutes} ${ampm}`;
+    return ${hours}:${minutes} ${ampm};
   }
 
   function formatDate(dateStr) {
@@ -174,7 +174,7 @@ Proposed @ ${timeText}
     const date = document.getElementById('propose-date').value;
     const time = document.getElementById('propose-time').value;
     if (!date || !time || !currentUser) return;
-    
+
     db.collection('proposals').add({
       date: date,
       time: time,
@@ -194,16 +194,16 @@ Proposed @ ${timeText}
         acceptedBy: [currentUser],
         id: proposalId
       };
-      
+
       if (!notifiedNewProposals.has(proposalId)) {
         sendProposalNotification(proposalData);
         notifiedNewProposals.add(proposalId);
-        
+
         db.collection('proposals').doc(proposalId).update({
           proposalNotified: true
         });
       }
-      
+
       loadProposals();
       document.getElementById('propose-date').value = '';
       document.getElementById('propose-time').value = '';
@@ -229,63 +229,47 @@ Proposed @ ${timeText}
           const isConfirmed = acceptedCount >= 4;
           const isBooked = proposal.isBooked === true;
           const venue = proposal.venue || null;
-          
+
           if (isConfirmed && !proposal.notified && !notifiedProposals.has(proposalId)) {
             sendConfirmationNotification(proposal, proposalId);
             notifiedProposals.add(proposalId);
-            
+
             db.collection('proposals').doc(proposalId).update({
               notified: true
             });
           }
-          
+
           const dateObj = new Date(proposal.date);
           const formattedDate = dateObj.toLocaleDateString(undefined, {
             weekday: 'short',
             month: 'short',
             day: 'numeric'
           });
-          
+
           const div = document.createElement('div');
-          div.className = `proposal ${isBooked ? 'booked' : (isConfirmed ? 'confirmed' : '')}`;
-          
+          div.className = proposal ${isBooked ? 'booked' : (isConfirmed ? 'confirmed' : '')};
+
           let statusText = isBooked ? 'Booked' : (isConfirmed ? 'Confirmed' : 'Proposed');
           let venueBadge = '';
           if (venue) {
-            venueBadge = `${venue}`;
+            venueBadge = ${venue};
           }
-          
-          div.innerHTML = `
-            
 
+          div.innerHTML = `
 
               ${formattedDate}
               ${proposal.time}
               ${statusText}${venueBadge}
-            
-
-
-            
 
 By: ${proposal.proposedBy}
 
-
-            
-
 Players: ${acceptedBy.join(', ')} (${acceptedCount}/4)
 
-
-            
-
-
-              
                 ${acceptedBy.includes(currentUser) ? 'Leave' : 'Join'}
-              
-              ${isProposer ? `Delete` : ''}
-              ${(isConfirmed && !isBooked) ? `Book Court` : ''}
-              ${isBooked ? `Unbook` : ''}
-            
 
+              ${isProposer ? Delete : ''}
+              ${(isConfirmed && !isBooked) ? Book Court : ''}
+              ${isBooked ? Unbook : ''}
 
           `;
           proposalsList.appendChild(div);
@@ -303,14 +287,14 @@ Players: ${acceptedBy.join(', ')} (${acceptedCount}/4)
       let proposal = doc.data();
       let acceptedBy = proposal.acceptedBy || [];
       if (!Array.isArray(acceptedBy)) acceptedBy = [];
-      
+
       let updatedAcceptedBy;
       if (isAccepted) {
         updatedAcceptedBy = acceptedBy.filter(name => name !== currentUser);
       } else {
         updatedAcceptedBy = [...acceptedBy, currentUser];
       }
-      
+
       proposalRef.update({
         acceptedBy: updatedAcceptedBy
       }).then(() => {
@@ -341,7 +325,7 @@ Players: ${acceptedBy.join(', ')} (${acceptedCount}/4)
       alert('Please select a venue');
       return;
     }
-    
+
     db.collection('proposals').doc(proposalId).update({
       isBooked: true,
       venue: venue,
@@ -354,7 +338,7 @@ Players: ${acceptedBy.join(', ')} (${acceptedCount}/4)
       }
       loadProposals();
       refreshBookingList();
-      
+
       // Send notification
       db.collection('proposals').doc(proposalId).get().then(doc => {
         if (doc.exists) {
@@ -386,10 +370,10 @@ Players: ${acceptedBy.join(', ')} (${acceptedCount}/4)
   window.showBookingOptions = function(proposalId) {
     // Get all proposals for display
     refreshBookingList();
-    
+
     // Highlight the selected proposal
     setTimeout(() => {
-      const proposalElement = document.querySelector(`[data-proposal-id="${proposalId}"]`);
+      const proposalElement = document.querySelector([data-proposal-id="${proposalId}"]);
       if (proposalElement) {
         proposalElement.scrollIntoView({ behavior: 'smooth' });
         proposalElement.classList.add('highlighted');
@@ -401,10 +385,10 @@ Players: ${acceptedBy.join(', ')} (${acceptedCount}/4)
   function setupBookingView() {
     const bookingContainer = document.getElementById('booking-container');
     if (!bookingContainer) return;
-    
+
     // Clear existing content
     bookingContainer.innerHTML = '';
-    
+
     // Create header
     const header = document.createElement('div');
     header.className = 'booking-header';
@@ -414,8 +398,8 @@ Court Booking
 
 ';
     bookingContainer.appendChild(header);
-    
-    // Create filters
+
+ // Create filters
   const filters = document.createElement('div');
   filters.className = 'booking-filters';
   filters.innerHTML = `
@@ -471,7 +455,10 @@ Court Booking
     </div>
   `;
   bookingContainer.appendChild(bookingInstructions);
-
+  
+  // Initial refresh
+  refreshBookingList();
+});
 
 function refreshBookingList() {
   const bookingListContainer = document.querySelector('.booking-list-container');
@@ -892,5 +879,3 @@ function setupBookingView() {
   // Initial refresh
   refreshBookingList();
 }
-      
-
