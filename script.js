@@ -267,7 +267,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
               ` : ''}
               ${isConfirmed && !isBooked ? `<button class="action-button book-court-button" onclick="toggleBooking('${proposalId}', false)">Mark as Booked</button>` : ''}
-              ${isBooked ? `<button class="action-button unbook-button" onclick="toggleBooking('${proposalId}', true)">Mark as Unbooked</button>` : ''}
             </div>
           `;
           proposalsList.appendChild(div);
