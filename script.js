@@ -30,13 +30,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function updateLayoutForScreenSize() {
     if (isMobileView) {
-
       document.querySelector('.main').style.display = 'none';
       document.querySelector('.sidebar').style.width = '100%';
       document.querySelector('.sidebar').style.minWidth = '100%';
       document.querySelector('.container').style.flexDirection = 'column';
       
-
       const sidebarTitle = document.createElement('h1');
       sidebarTitle.textContent = 'Badminton Meet';
       sidebarTitle.classList.add('mobile-title');
@@ -46,24 +44,21 @@ document.addEventListener('DOMContentLoaded', function() {
         sidebar.insertBefore(sidebarTitle, sidebar.firstChild);
       }
     } else {
-
       document.querySelector('.main').style.display = 'flex';
       document.querySelector('.sidebar').style.width = '300px';
       document.querySelector('.sidebar').style.minWidth = '200px';
       document.querySelector('.container').style.flexDirection = 'row';
       
-
       const mobileTitle = document.querySelector('.mobile-title');
       if (mobileTitle) {
         mobileTitle.remove();
       }
       
-
       initializeCalendar();
     }
   }
 
-
+  // Load events for the calendar
   function loadAllEvents(info, successCallback) {
     db.collection('proposals').get().then(snapshot => {
       const events = [];
@@ -71,13 +66,19 @@ document.addEventListener('DOMContentLoaded', function() {
         const proposal = doc.data();
         const dateTime = new Date(`${proposal.date}T${proposal.time}`);
         const acceptedBy = Array.isArray(proposal.acceptedBy) ? proposal.acceptedBy : [];
+        const isBooked = proposal.isBooked || false;
+        
+        let status = 'proposed';
+        if (acceptedBy.length >= 4) status = 'confirmed';
+        if (isBooked) status = 'booked';
         
         events.push({
           title: 'Badminton Meet',
           start: dateTime,
           extendedProps: {
-            status: acceptedBy.length >= 4 ? 'confirmed' : 'proposed',
-            participants: acceptedBy
+            status: status,
+            participants: acceptedBy,
+            isBooked: isBooked
           }
         });
       });
@@ -105,11 +106,14 @@ document.addEventListener('DOMContentLoaded', function() {
             eventContainer.classList.add('event-container');
             
             const timeText = formatTime(arg.event.start);
+            const status = arg.event.extendedProps.status;
             
-            if (arg.event.extendedProps.status === 'confirmed') {
-              eventContainer.innerHTML = `<div class="event-text confirmed">Badminton Meet @ ${timeText}</div>`;
+            if (status === 'booked') {
+              eventContainer.innerHTML = `<div class="event-text booked">Booked @ ${timeText}</div>`;
+            } else if (status === 'confirmed') {
+              eventContainer.innerHTML = `<div class="event-text confirmed">Confirmed @ ${timeText}</div>`;
             } else {
-              eventContainer.innerHTML = `<div class="event-text proposed">Proposed: ${timeText}</div>`;
+              eventContainer.innerHTML = `<div class="event-text proposed">Proposed @ ${timeText}</div>`;
             }
             
             return { domNodes: [eventContainer] };
@@ -117,8 +121,9 @@ document.addEventListener('DOMContentLoaded', function() {
           eventDidMount: function(info) {
             const participantsText = info.event.extendedProps.participants.join(', ');
             const count = info.event.extendedProps.participants.length;
+            const isBooked = info.event.extendedProps.isBooked ? 'Booked' : '';
             const status = info.event.extendedProps.status === 'confirmed' ? 'Confirmed' : 'Proposed';
-            info.el.title = `${status} Badminton (${count}/4)\nParticipants: ${participantsText}`;
+            info.el.title = `${status} ${isBooked} Badminton (${count}/4)\nParticipants: ${participantsText}`;
           },
           height: '100%',
           displayEventTime: false
@@ -144,6 +149,13 @@ document.addEventListener('DOMContentLoaded', function() {
     return date.toLocaleDateString(undefined, options);
   }
 
+  // Format date to display in the booking list
+  function formatDateForBooking(dateStr) {
+    const date = new Date(dateStr);
+    const options = { weekday: 'short', month: 'short', day: 'numeric' };
+    return date.toLocaleDateString(undefined, options);
+  }
+
   window.login = function() {
     const name = document.getElementById('user-name').value.trim();
     if (name) {
@@ -151,6 +163,7 @@ document.addEventListener('DOMContentLoaded', function() {
       document.getElementById('login-section').style.display = 'none';
       document.getElementById('propose-section').style.display = 'block';
       loadProposals();
+      initializeBookingList();
     } else {
       alert('Please enter your name!');
     }
@@ -168,7 +181,8 @@ document.addEventListener('DOMContentLoaded', function() {
       acceptedBy: [currentUser],
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
       notified: false,
-      proposalNotified: false 
+      proposalNotified: false,
+      isBooked: false
     }).then((docRef) => {
       const proposalId = docRef.id;
       const proposalData = {
@@ -189,6 +203,7 @@ document.addEventListener('DOMContentLoaded', function() {
       }
       
       loadProposals();
+      initializeBookingList();
       document.getElementById('propose-date').value = '';
       document.getElementById('propose-time').value = '';
       if (calendar && !isMobileView) {
@@ -211,13 +226,12 @@ document.addEventListener('DOMContentLoaded', function() {
           const acceptedCount = acceptedBy.length;
           const isProposer = proposal.proposedBy === currentUser;
           const isConfirmed = acceptedCount >= 4;
+          const isBooked = proposal.isBooked || false;
           
-
           if (isConfirmed && !proposal.notified && !notifiedProposals.has(proposalId)) {
             sendConfirmationNotification(proposal, proposalId);
             notifiedProposals.add(proposalId);
             
-  
             db.collection('proposals').doc(proposalId).update({
               notified: true
             });
@@ -231,12 +245,15 @@ document.addEventListener('DOMContentLoaded', function() {
           });
           
           const div = document.createElement('div');
-          div.className = `proposal ${isConfirmed ? 'confirmed' : ''}`;
+          div.className = `proposal ${isConfirmed ? 'confirmed' : ''} ${isBooked ? 'booked' : ''}`;
           div.innerHTML = `
             <div class="proposal-header">
               <span class="proposal-date">${formattedDate}</span>
               <span class="proposal-time">${proposal.time}</span>
-              <span class="proposal-status">${isConfirmed ? 'Confirmed' : 'Proposed'}</span>
+              <span class="proposal-status">
+                ${isConfirmed ? 'Confirmed' : 'Proposed'}
+                ${isBooked ? '<span class="booking-badge">Booked</span>' : ''}
+              </span>
             </div>
             <p class="proposal-info">By: ${proposal.proposedBy}</p>
             <p class="proposal-participants">Players: ${acceptedBy.join(', ')} <span class="participant-count">(${acceptedCount}/4)</span></p>
@@ -245,6 +262,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 ${acceptedBy.includes(currentUser) ? 'Leave' : 'Join'}
               </button>
               ${isProposer ? `<button class="action-button delete-button" onclick="deleteProposal('${proposalId}')">Delete</button>` : ''}
+              ${isConfirmed ? `
+                <button class="action-button ${isBooked ? 'unbook-button' : 'book-court-button'}" onclick="${isBooked ? `toggleBooking('${proposalId}', true)` : `showBookingOptions('${proposalId}')`}">
+                  ${isBooked ? 'Unbook' : 'Book Court'}
+                </button>
+              ` : ''}
             </div>
           `;
           proposalsList.appendChild(div);
@@ -255,6 +277,205 @@ document.addEventListener('DOMContentLoaded', function() {
       }, error => console.error("Error loading proposals:", error));
   }
 
+  // Initialize booking list view
+  function initializeBookingList() {
+    const bookingContainer = document.getElementById('booking-container');
+    if (!bookingContainer) return;
+    
+    // Clear existing content
+    bookingContainer.innerHTML = '';
+    
+    // Create header
+    const bookingHeader = document.createElement('div');
+    bookingHeader.className = 'booking-header';
+    bookingHeader.innerHTML = '<h2>Badminton Bookings</h2>';
+    bookingContainer.appendChild(bookingHeader);
+    
+    // Create filters
+    const bookingFilters = document.createElement('div');
+    bookingFilters.className = 'booking-filters';
+    bookingFilters.innerHTML = `
+      <button class="filter-button active" onclick="filterBookings('all')">All</button>
+      <button class="filter-button" onclick="filterBookings('confirmed')">Confirmed</button>
+      <button class="filter-button" onclick="filterBookings('booked')">Booked</button>
+    `;
+    bookingContainer.appendChild(bookingFilters);
+    
+    // Create booking list container
+    const bookingList = document.createElement('div');
+    bookingList.className = 'booking-list';
+    bookingList.id = 'booking-list';
+    bookingContainer.appendChild(bookingList);
+    
+    // Load bookings
+    loadBookings();
+  }
+  
+  // Load bookings for the booking list
+  function loadBookings() {
+    const bookingList = document.getElementById('booking-list');
+    if (!bookingList) return;
+    
+    bookingList.innerHTML = '<div class="loading">Loading bookings...</div>';
+    
+    db.collection('proposals')
+      .orderBy('date', 'asc')
+      .onSnapshot(snapshot => {
+        const proposals = [];
+        snapshot.forEach(doc => {
+          const proposal = doc.data();
+          proposal.id = doc.id;
+          proposals.push(proposal);
+        });
+        
+        if (proposals.length === 0) {
+          bookingList.innerHTML = '<div class="no-bookings">No proposals yet. Create one to get started!</div>';
+          return;
+        }
+        
+        displayBookings(proposals);
+      }, error => {
+        console.error("Error loading bookings:", error);
+        bookingList.innerHTML = '<div class="error">Error loading bookings. Please try again.</div>';
+      });
+  }
+  
+  // Display bookings in the booking list
+  function displayBookings(proposals) {
+    const bookingList = document.getElementById('booking-list');
+    if (!bookingList) return;
+    
+    bookingList.innerHTML = '';
+    
+    proposals.forEach((proposal, index) => {
+      const acceptedBy = Array.isArray(proposal.acceptedBy) ? proposal.acceptedBy : [];
+      const acceptedCount = acceptedBy.length;
+      const isConfirmed = acceptedCount >= 4;
+      const isBooked = proposal.isBooked || false;
+      
+      // Create booking item element
+      const bookingItem = document.createElement('div');
+      bookingItem.className = `booking-list-item ${isConfirmed ? 'confirmed' : ''} ${isBooked ? 'booked' : ''}`;
+      bookingItem.dataset.status = isBooked ? 'booked' : (isConfirmed ? 'confirmed' : 'proposed');
+      
+      const dateObj = new Date(proposal.date);
+      const formattedDate = formatDateForBooking(proposal.date);
+      
+      bookingItem.innerHTML = `
+        <div class="booking-details">
+          <div class="booking-date-time">
+            ${formattedDate} at ${proposal.time}
+            <span class="booking-status ${isBooked ? 'booked' : (isConfirmed ? 'confirmed' : '')}">
+              ${isBooked ? 'Booked' : (isConfirmed ? 'Confirmed' : 'Proposed')}
+            </span>
+          </div>
+          <div class="booking-participants">
+            ${acceptedBy.join(', ')} <span class="participant-count">(${acceptedCount}/4)</span>
+          </div>
+          ${isBooked ? `<div class="venue-badge">Booking Confirmed</div>` : ''}
+        </div>
+        <div class="booking-actions">
+          ${isConfirmed && !isBooked ? `
+            <div class="venue-options">
+              <button class="venue-link-button" onclick="openBookingURL('qmc')">QMC (£16)</button>
+              <button class="venue-link-button" onclick="openBookingURL('everest')">Everest (£12)</button>
+            </div>
+            <button class="action-button book-court-button" onclick="toggleBooking('${proposal.id}', false)">Mark as Booked</button>
+          ` : ''}
+          ${isBooked ? `
+            <button class="action-button unbook-button" onclick="toggleBooking('${proposal.id}', true)">Mark as Unbooked</button>
+          ` : ''}
+        </div>
+      `;
+      
+      bookingList.appendChild(bookingItem);
+    });
+  }
+  
+  // Open booking URL in new tab
+  window.openBookingURL = function(venue) {
+    const urls = {
+      qmc: 'https://bookings.qmc.ac.uk/Book/Book.aspx?group=1&site=1',
+      everest: 'https://www.lifestylefitness.co.uk/club/basingstoke#sports-bookings'
+    };
+    
+    if (urls[venue]) {
+      window.open(urls[venue], '_blank');
+    }
+  };
+  
+  // Show booking options for a proposal
+  window.showBookingOptions = function(proposalId) {
+    const bookingOptions = document.createElement('div');
+    bookingOptions.className = 'booking-options-dialog';
+    bookingOptions.innerHTML = `
+      <div class="booking-options-content">
+        <h3>Choose a Venue</h3>
+        <div class="venue-options">
+          <button onclick="openBookingURL('qmc'); toggleBooking('${proposalId}', false)">QMC (£16)</button>
+          <button onclick="openBookingURL('everest'); toggleBooking('${proposalId}', false)">Everest (£12)</button>
+        </div>
+        <div class="booking-options-actions">
+          <button onclick="toggleBooking('${proposalId}', false)">Mark as Booked</button>
+          <button onclick="closeBookingOptions()">Cancel</button>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(bookingOptions);
+  };
+  
+  // Close booking options dialog
+  window.closeBookingOptions = function() {
+    const dialog = document.querySelector('.booking-options-dialog');
+    if (dialog) {
+      dialog.remove();
+    }
+  };
+  
+  // Toggle booking status
+  window.toggleBooking = function(proposalId, isCurrentlyBooked) {
+    const proposalRef = db.collection('proposals').doc(proposalId);
+    
+    proposalRef.update({
+      isBooked: !isCurrentlyBooked
+    }).then(() => {
+      closeBookingOptions();
+      loadProposals();
+      loadBookings();
+      if (calendar && !isMobileView) {
+        calendar.refetchEvents();
+      }
+    }).catch(error => {
+      console.error("Error updating booking status:", error);
+      alert("Failed to update booking status. Please try again.");
+    });
+  };
+  
+  // Filter bookings in the booking list
+  window.filterBookings = function(filter) {
+    const filterButtons = document.querySelectorAll('.filter-button');
+    filterButtons.forEach(button => {
+      button.classList.remove('active');
+      if (button.textContent.toLowerCase() === filter) {
+        button.classList.add('active');
+      }
+    });
+    
+    const bookingItems = document.querySelectorAll('.booking-list-item');
+    bookingItems.forEach(item => {
+      if (filter === 'all') {
+        item.style.display = 'flex';
+      } else {
+        if (item.dataset.status === filter) {
+          item.style.display = 'flex';
+        } else {
+          item.style.display = 'none';
+        }
+      }
+    });
+  };
+  
   window.toggleAcceptance = function(proposalId, isAccepted) {
     const proposalRef = db.collection('proposals').doc(proposalId);
     proposalRef.get().then(doc => {
@@ -273,10 +494,10 @@ document.addEventListener('DOMContentLoaded', function() {
       proposalRef.update({
         acceptedBy: updatedAcceptedBy
       }).then(() => {
-
         if (calendar && !isMobileView) {
           calendar.refetchEvents();
         }
+        loadBookings();
       });
     }).catch(error => console.error("Toggle error:", error));
   };
@@ -289,6 +510,7 @@ document.addEventListener('DOMContentLoaded', function() {
           if (calendar && !isMobileView) {
             calendar.refetchEvents();
           }
+          loadBookings();
         })
         .catch(error => console.error("Error deleting proposal:", error));
     }
@@ -400,121 +622,50 @@ document.addEventListener('DOMContentLoaded', function() {
     .catch(error => console.error("Error sending Discord notification:", error));
   }
 
+  window.toggleView = function(view) {
+    const calendarContainer = document.getElementById('calendar-container');
+    const chatContainer = document.getElementById('chat-container');
+    const bookingContainer = document.getElementById('booking-container');
+    const calendarToggle = document.getElementById('calendar-toggle');
+    const chatToggle = document.getElementById('chat-toggle');
+    const bookingToggle = document.getElementById('booking-toggle');
+    
+    // Hide all containers first
+    calendarContainer.style.display = 'none';
+    chatContainer.style.display = 'none';
+    if (bookingContainer) bookingContainer.style.display = 'none';
+    
+    // Remove active class from all toggles
+    calendarToggle.classList.remove('active');
+    chatToggle.classList.remove('active');
+    if (bookingToggle) bookingToggle.classList.remove('active');
+    
+    // Show the selected container and activate the toggle
+    if (view === 'calendar') {
+      calendarContainer.style.display = 'flex';
+      calendarToggle.classList.add('active');
+      if (calendar) {
+        calendar.updateSize();
+      }
+    } else if (view === 'chat') {
+      chatContainer.style.display = 'flex';
+      chatToggle.classList.add('active');
+    } else if (view === 'booking' && bookingContainer) {
+      bookingContainer.style.display = 'flex';
+      bookingToggle.classList.add('active');
+      if (currentUser) {
+        initializeBookingList();
+      }
+    }
+  };
+
+  // Initialize app on load
   if (!isMobileView) {
     initializeCalendar();
   }
+
+  // Ensure booking list is initialized when user is logged in
+  if (currentUser) {
+    initializeBookingList();
+  }
 });
-
-// Function to change booking sites
-window.changeBookingSite = function(venue) {
-  const bookingFrame = document.getElementById('booking-frame');
-  const venueButtons = document.querySelectorAll('.venue-button');
-  
-  // Update active button
-  venueButtons.forEach(button => {
-    button.classList.remove('active');
-  });
-  event.target.classList.add('active');
-  
-  // Change iframe source
-if (venue === 'qmc') {
-    bookingFrame.src = 'https://bookings.qmc.ac.uk/Book/Book.aspx?group=1&site=1';
-  } else if (venue === 'everest') {
-    bookingFrame.src = 'https://www.lifestylefitness.co.uk/club/basingstoke#sports-bookings';
-  }
-};
-
-// Updated toggleView function to handle booking tab
-window.toggleView = function(view) {
-  const calendarContainer = document.getElementById('calendar-container');
-  const chatContainer = document.getElementById('chat-container');
-  const bookingContainer = document.getElementById('booking-container');
-  const calendarToggle = document.getElementById('calendar-toggle');
-  const chatToggle = document.getElementById('chat-toggle');
-  const bookingToggle = document.getElementById('booking-toggle');
-  
-  // Hide all containers first
-  calendarContainer.style.display = 'none';
-  chatContainer.style.display = 'none';
-  if (bookingContainer) bookingContainer.style.display = 'none';
-  
-  // Remove active class from all toggles
-  calendarToggle.classList.remove('active');
-  chatToggle.classList.remove('active');
-  if (bookingToggle) bookingToggle.classList.remove('active');
-  
-  // Show the selected container and activate the toggle
-  if (view === 'calendar') {
-    calendarContainer.style.display = 'flex';
-    calendarToggle.classList.add('active');
-    if (calendar) {
-      calendar.updateSize();
-    }
-  } else if (view === 'chat') {
-    chatContainer.style.display = 'flex';
-    chatToggle.classList.add('active');
-  } else if (view === 'booking' && bookingContainer) {
-    bookingContainer.style.display = 'flex';
-    bookingToggle.classList.add('active');
-  }
-};
-
-// Add this to your existing DOMContentLoaded listener
-document.addEventListener('DOMContentLoaded', function() {
-  // ... Your existing code ...
-  
-  // Initialize booking tab
-  initializeBookingTab();
-  
-  // ... Your existing code ...
-  
-  // Function to initialize booking tab
-  function initializeBookingTab() {
-    const bookingContainer = document.getElementById('booking-container');
-    const bookingToggle = document.getElementById('booking-toggle');
-    
-    if (bookingContainer && !bookingContainer.hasAttribute('data-initialized')) {
-      // Mark as initialized to prevent duplicate initialization
-      bookingContainer.setAttribute('data-initialized', 'true');
-      
-      // Create venue selector if it doesn't exist
-      if (!document.querySelector('.venue-selector')) {
-        const venueSelector = document.createElement('div');
-        venueSelector.className = 'venue-selector';
-        venueSelector.innerHTML = `
-          <div class="venue-buttons">
-            <button onclick="changeBookingSite('qmc')" class="venue-button active">QMC (£16)</button>
-            <button onclick="changeBookingSite('everest')" class="venue-button">Everest (£12)</button>
-          </div>
-        `;
-        bookingContainer.insertBefore(venueSelector, bookingContainer.firstChild);
-      }
-      
-      // Add direct booking button from confirmed proposals
-      const loadProposalsOriginal = window.loadProposals || function(){};
-      window.loadProposals = function() {
-        loadProposalsOriginal();
-        
-        // Get confirmed proposals and add booking buttons
-        const confirmedProposals = document.querySelectorAll('.proposal.confirmed');
-        confirmedProposals.forEach(proposal => {
-          // Check if booking button already exists
-          if (!proposal.querySelector('.book-court-button')) {
-            const actionsDiv = proposal.querySelector('.proposal-actions');
-            if (actionsDiv) {
-              const bookButton = document.createElement('button');
-              bookButton.className = 'action-button book-court-button';
-              bookButton.textContent = 'Book Court';
-              bookButton.onclick = function() {
-                toggleView('booking');
-                // Optionally, you could set the date in the booking iframe
-                // if the booking sites support URL parameters for dates
-              };
-              actionsDiv.appendChild(bookButton);
-            }
-          }
-        });
-      };
-    }
-  }
-})
