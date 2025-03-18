@@ -250,7 +250,7 @@ document.addEventListener('DOMContentLoaded', function() {
               <span class="proposal-time">${proposal.time}</span>
               <span class="proposal-status">
                 ${isConfirmed ? 'Confirmed' : 'Proposed'}
-                ${isBooked ? '<span class="booking-badge">Booked</span>' : ''}
+                ${isBooked ? '<span class="booking-badge">Booked</span>' : '<span class="booking-badge not-booked">Not Booked</span>'}
               </span>
             </div>
             <p class="proposal-info">By: ${proposal.proposedBy}</p>
@@ -354,11 +354,13 @@ document.addEventListener('DOMContentLoaded', function() {
             <span class="booking-status ${isBooked ? 'booked' : (isConfirmed ? 'confirmed' : '')}">
               ${isBooked ? 'Booked' : (isConfirmed ? 'Confirmed' : 'Proposed')}
             </span>
+            ${isConfirmed ? (isBooked ? 
+                            `<div class="venue-badge">Booking Confirmed</div>` : 
+                            `<div class="venue-badge not-booked">Not Booked</div>`) : ''}
           </div>
           <div class="booking-participants">
             ${acceptedBy.join(', ')} <span class="participant-count">(${acceptedCount}/4)</span>
           </div>
-          ${isBooked ? `<div class="venue-badge">Booking Confirmed</div>` : ''}
         </div>
         <div class="booking-actions">
           ${!isBooked ? `
