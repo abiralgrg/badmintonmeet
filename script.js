@@ -365,8 +365,8 @@ document.addEventListener('DOMContentLoaded', function() {
         <div class="booking-actions">
           ${!isBooked ? `
             <div class="venue-options">
-              <button class="venue-link-button" onclick="openBookingURLAndMarkBooked('qmc', '${proposal.id}')">QMC (£16)</button>
-              <button class="venue-link-button" onclick="openBookingURLAndMarkBooked('everest', '${proposal.id}')">Everest (£12)</button>
+              <button class="venue-link-button" onclick="openBookingURLAndMarkBooked('qmc', '${proposal.id}')">QMC</button>
+              <button class="venue-link-button" onclick="openBookingURLAndMarkBooked('everest', '${proposal.id}')">Everest</button>
             </div>
           ` : ''}
           ${!isBooked ? `<button class="action-button book-court-button" onclick="toggleBooking('${proposal.id}', false)">Mark as Booked</button>` : ''}
