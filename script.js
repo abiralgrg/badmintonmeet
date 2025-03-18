@@ -401,8 +401,8 @@ document.addEventListener('DOMContentLoaded', function() {
       <div class="booking-options-content">
         <h3>Choose a Venue</h3>
         <div class="venue-options">
-          <button onclick="openBookingURLAndMarkBooked('qmc', '${proposalId}')">QMC (£16)</button>
-          <button onclick="openBookingURLAndMarkBooked('everest', '${proposalId}')">Everest (£12)</button>
+          <button onclick="openBookingURLAndMarkBooked('qmc', '${proposalId}')">QMC</button>
+          <button onclick="openBookingURLAndMarkBooked('everest', '${proposalId}')">Everest</button>
         </div>
         <div class="booking-options-actions">
           <button onclick="toggleBooking('${proposalId}', false)">Mark as Booked</button>
