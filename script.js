@@ -58,7 +58,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
 
-  // Load events for the calendar
   function loadAllEvents(info, successCallback) {
     db.collection('proposals').get().then(snapshot => {
       const events = [];
@@ -149,7 +148,6 @@ document.addEventListener('DOMContentLoaded', function() {
     return date.toLocaleDateString(undefined, options);
   }
 
-  // Format date to display in the booking list
   function formatDateForBooking(dateStr) {
     const date = new Date(dateStr);
     const options = { weekday: 'short', month: 'short', day: 'numeric' };
@@ -262,11 +260,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 ${acceptedBy.includes(currentUser) ? 'Leave' : 'Join'}
               </button>
               ${isProposer ? `<button class="action-button delete-button" onclick="deleteProposal('${proposalId}')">Delete</button>` : ''}
-              ${isConfirmed ? `
-                <button class="action-button ${isBooked ? 'unbook-button' : 'book-court-button'}" onclick="${isBooked ? `toggleBooking('${proposalId}', true)` : `showBookingOptions('${proposalId}')`}">
-                  ${isBooked ? 'Unbook' : 'Book Court'}
-                </button>
-              ` : ''}
             </div>
           `;
           proposalsList.appendChild(div);
@@ -277,21 +270,17 @@ document.addEventListener('DOMContentLoaded', function() {
       }, error => console.error("Error loading proposals:", error));
   }
 
-  // Initialize booking list view
   function initializeBookingList() {
     const bookingContainer = document.getElementById('booking-container');
     if (!bookingContainer) return;
     
-    // Clear existing content
     bookingContainer.innerHTML = '';
     
-    // Create header
     const bookingHeader = document.createElement('div');
     bookingHeader.className = 'booking-header';
-    bookingHeader.innerHTML = '<h2>Badminton Bookings</h2>';
+    bookingHeader.innerHTML = '<h1>Badminton Bookings</h1>';
     bookingContainer.appendChild(bookingHeader);
     
-    // Create filters
     const bookingFilters = document.createElement('div');
     bookingFilters.className = 'booking-filters';
     bookingFilters.innerHTML = `
@@ -301,17 +290,14 @@ document.addEventListener('DOMContentLoaded', function() {
     `;
     bookingContainer.appendChild(bookingFilters);
     
-    // Create booking list container
     const bookingList = document.createElement('div');
     bookingList.className = 'booking-list';
     bookingList.id = 'booking-list';
     bookingContainer.appendChild(bookingList);
     
-    // Load bookings
     loadBookings();
   }
   
-  // Load bookings for the booking list
   function loadBookings() {
     const bookingList = document.getElementById('booking-list');
     if (!bookingList) return;
@@ -340,7 +326,6 @@ document.addEventListener('DOMContentLoaded', function() {
       });
   }
   
-  // Display bookings in the booking list
   function displayBookings(proposals) {
     const bookingList = document.getElementById('booking-list');
     if (!bookingList) return;
@@ -353,7 +338,6 @@ document.addEventListener('DOMContentLoaded', function() {
       const isConfirmed = acceptedCount >= 4;
       const isBooked = proposal.isBooked || false;
       
-      // Create booking item element
       const bookingItem = document.createElement('div');
       bookingItem.className = `booking-list-item ${isConfirmed ? 'confirmed' : ''} ${isBooked ? 'booked' : ''}`;
       bookingItem.dataset.status = isBooked ? 'booked' : (isConfirmed ? 'confirmed' : 'proposed');
@@ -376,11 +360,13 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
         <div class="booking-actions">
           ${isConfirmed && !isBooked ? `
-            <div class="venue-options">
-              <button class="venue-link-button" onclick="openBookingURL('qmc')">QMC (£16)</button>
-              <button class="venue-link-button" onclick="openBookingURL('everest')">Everest (£12)</button>
+            <div class="booking-options">
+              <div class="venue-options">
+                <button class="venue-link-button" onclick="openBookingURLAndMarkBooked('qmc', '${proposal.id}')">QMC (£16)</button>
+                <button class="venue-link-button" onclick="openBookingURLAndMarkBooked('everest', '${proposal.id}')">Everest (£12)</button>
+              </div>
+              <button class="action-button book-court-button" onclick="toggleBooking('${proposal.id}', false)">Mark as Booked</button>
             </div>
-            <button class="action-button book-court-button" onclick="toggleBooking('${proposal.id}', false)">Mark as Booked</button>
           ` : ''}
           ${isBooked ? `
             <button class="action-button unbook-button" onclick="toggleBooking('${proposal.id}', true)">Mark as Unbooked</button>
@@ -392,7 +378,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
   
-  // Open booking URL in new tab
   window.openBookingURL = function(venue) {
     const urls = {
       qmc: 'https://bookings.qmc.ac.uk/Book/Book.aspx?group=1&site=1',
@@ -404,7 +389,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   };
   
-  // Show booking options for a proposal
+  window.openBookingURLAndMarkBooked = function(venue, proposalId) {
+    openBookingURL(venue);
+    toggleBooking(proposalId, false);
+  };
+  
   window.showBookingOptions = function(proposalId) {
     const bookingOptions = document.createElement('div');
     bookingOptions.className = 'booking-options-dialog';
@@ -412,8 +401,8 @@ document.addEventListener('DOMContentLoaded', function() {
       <div class="booking-options-content">
         <h3>Choose a Venue</h3>
         <div class="venue-options">
-          <button onclick="openBookingURL('qmc'); toggleBooking('${proposalId}', false)">QMC (£16)</button>
-          <button onclick="openBookingURL('everest'); toggleBooking('${proposalId}', false)">Everest (£12)</button>
+          <button onclick="openBookingURLAndMarkBooked('qmc', '${proposalId}')">QMC (£16)</button>
+          <button onclick="openBookingURLAndMarkBooked('everest', '${proposalId}')">Everest (£12)</button>
         </div>
         <div class="booking-options-actions">
           <button onclick="toggleBooking('${proposalId}', false)">Mark as Booked</button>
@@ -425,7 +414,6 @@ document.addEventListener('DOMContentLoaded', function() {
     document.body.appendChild(bookingOptions);
   };
   
-  // Close booking options dialog
   window.closeBookingOptions = function() {
     const dialog = document.querySelector('.booking-options-dialog');
     if (dialog) {
@@ -433,7 +421,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   };
   
-  // Toggle booking status
   window.toggleBooking = function(proposalId, isCurrentlyBooked) {
     const proposalRef = db.collection('proposals').doc(proposalId);
     
@@ -452,7 +439,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   };
   
-  // Filter bookings in the booking list
   window.filterBookings = function(filter) {
     const filterButtons = document.querySelectorAll('.filter-button');
     filterButtons.forEach(button => {
@@ -630,17 +616,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const chatToggle = document.getElementById('chat-toggle');
     const bookingToggle = document.getElementById('booking-toggle');
     
-    // Hide all containers first
     calendarContainer.style.display = 'none';
     chatContainer.style.display = 'none';
     if (bookingContainer) bookingContainer.style.display = 'none';
     
-    // Remove active class from all toggles
     calendarToggle.classList.remove('active');
     chatToggle.classList.remove('active');
     if (bookingToggle) bookingToggle.classList.remove('active');
     
-    // Show the selected container and activate the toggle
     if (view === 'calendar') {
       calendarContainer.style.display = 'flex';
       calendarToggle.classList.add('active');
@@ -659,12 +642,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   };
 
-  // Initialize app on load
   if (!isMobileView) {
     initializeCalendar();
   }
 
-  // Ensure booking list is initialized when user is logged in
   if (currentUser) {
     initializeBookingList();
   }
